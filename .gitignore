@@ -1,0 +1,27 @@
+# Quartus Prime - arquivos gerados
+db/
+incremental_db/
+output_files/
+greybox_tmp/
+simulation/
+*.qws
+*.rpt
+*.summary
+*.smsg
+*.done
+*.jdi
+*.sld
+*.pin
+*.pof
+*.sof
+*.qarlog
+*.bak
+*.flock
+*_assignment_defaults.qdf
+
+# ModelSim
+work/
+transcript
+vsim.wlf
+*.wlf
+modelsim.ini
