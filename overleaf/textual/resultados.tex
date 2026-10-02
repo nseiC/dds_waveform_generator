@@ -4,7 +4,7 @@ Este capítulo apresenta os resultados da síntese do projeto digital no \ac{fpg
 
 \section{Síntese e análise de tempo}
 
-O projeto foi compilado no Quartus Prime 18.1 Lite para o EP4CE115F29C7. A Tabela~\ref{tab:recursos} mostra os recursos usados. O gerador ocupa menos de 1\% dos elementos lógicos do \ac{fpga}. Os 32\,768~bits de memória correspondem às quatro tabelas de \(1024 \times 8\)~bits, e os quatro multiplicadores de \(9 \times 9\)~bits são os da conversão de frequência da Equação~(\ref{eq:ftw}). Os registradores de saída do barramento do \ac{dac} foram efetivamente alocados nos registradores de entrada e saída, junto aos pinos.
+O projeto foi compilado no Quartus Prime 18.1 Lite para o EP4CE115F29C7. A Tabela~\ref{tab:recursos} mostra os recursos usados. O gerador ocupa menos de 1\% dos elementos lógicos do \ac{fpga}. Os 32\,768~bits de memória correspondem às quatro tabelas de \(1024 \times 8\)~bits, e os quatro multiplicadores de \(9 \times 9\)~bits são os da conversão de frequência da Equação~(\ref{eq:ftw}). Os registradores de saída do barramento do \ac{dac} e o registrador de taxa dupla do seu clock foram efetivamente alocados nos elementos de entrada e saída, junto aos pinos.
 
 \begin{table}
 	\caption{Recursos do \acs{fpga} usados pelo projeto.}
@@ -12,29 +12,29 @@ O projeto foi compilado no Quartus Prime 18.1 Lite para o EP4CE115F29C7. A Tabel
 	\begin{tabular}{l r r}\toprule
 		Recurso & Usado & Disponível\\\midrule
 		Elementos lógicos & 378 & 114\,480\\
-		Registradores & 262 & ---\\
+		Registradores & 264 & ---\\
 		Bits de memória & 32\,768 & 3\,981\,312\\
 		Multiplicadores de \(9 \times 9\)~bits & 4 & 532\\
 		\acp{pll} & 1 & 4\\
-		Pinos & 13 & 529\\\bottomrule
+		Pinos & 14 & 529\\\bottomrule
 	\end{tabular}
 	\legend{Fonte~---~Autoria própria.}
 \end{table}
 
-A Tabela~\ref{tab:tempo} resume a análise de tempo, no modelo mais lento do dispositivo (1,2~V e 85~°C). O domínio de 10~MHz poderia operar a até 100,25~MHz, uma margem de dez vezes. O domínio do \ac{jtag} poderia operar a até 29,68~MHz, contra os 6~MHz máximos do USB-Blaster. Todas as folgas são positivas, e nenhum caminho ficou sem restrição de tempo.
+A Tabela~\ref{tab:tempo} resume a análise de tempo, no modelo mais lento do dispositivo (1,2~V e 85~°C). O domínio de 10~MHz poderia operar a até 100,28~MHz, uma margem de dez vezes. O domínio do \ac{jtag} poderia operar a até 29,49~MHz, contra os 6~MHz máximos do USB-Blaster. Todas as folgas são positivas, e nenhum caminho ficou sem restrição de tempo.
 
 \begin{table}
 	\caption{Resultado da análise de tempo (modelo lento, 85~°C).}
 	\label{tab:tempo}
 	\begin{tabular}{l c c c}\toprule
 		Domínio de clock & Frequência máxima & Folga de \eng{setup} & Folga de \eng{hold}\\\midrule
-		10~MHz (\ac{pll}) & 100,25~MHz & 90,0~ns & 0,30~ns\\
-		\cod{tck} (\ac{jtag}) & 29,68~MHz & 33,2~ns & 0,40~ns\\\bottomrule
+		10~MHz (\ac{pll}) & 100,28~MHz & 90,0~ns & 0,32~ns\\
+		\cod{tck} (\ac{jtag}) & 29,49~MHz & 33,0~ns & 0,40~ns\\\bottomrule
 	\end{tabular}
 	\legend{Fonte~---~Autoria própria.}
 \end{table}
 
-A análise de metaestabilidade do Quartus identificou duas cadeias sincronizadoras de três registradores, a do \cod{cmd\_sync} e a do \cod{reset\_sync}, com tempo de acomodação disponível de pelo menos 294~ns, e estimou um tempo médio entre falhas típico superior a \(10^{9}\) anos para o projeto.
+A análise de metaestabilidade do Quartus identificou duas cadeias sincronizadoras de três registradores, a do \cod{cmd\_sync} e a do \cod{reset\_sync}, com tempo de acomodação disponível de pelo menos 293~ns, e estimou um tempo médio entre falhas típico superior a \(10^{9}\) anos para o projeto.
 
 \section{Verificação do núcleo digital}
 
@@ -219,7 +219,7 @@ O \eng{testbench} \cod{tb\_system} reúne o controle e o núcleo e faz o papel d
 	\legend{Fonte~---~Autoria própria.}
 \end{figure}
 
-Por fim, o \eng{testbench} \cod{tb\_DDS} simula a entidade do topo, com o \ac{pll} e as memórias pelos modelos da Intel. A Figura~\ref{fig:tb_pll} mostra o travamento do \ac{pll}: o clock de 10~MHz surge, o \eng{LED} de travamento acende e o \eng{reset} interno é liberado três clocks depois. A Figura~\ref{fig:tb_dds} mostra os pinos do \ac{dac}: o seno de 1~kHz após a liberação do botão e o retorno ao código 128 quando o botão é pressionado novamente. A frequência medida nos pinos ficou dentro de 1~Hz de 1~kHz, a tolerância usada no \eng{testbench}.
+Por fim, o \eng{testbench} \cod{tb\_DDS} simula a entidade do topo, com o \ac{pll} e as memórias pelos modelos da Intel. A Figura~\ref{fig:tb_pll} mostra o travamento do \ac{pll}: o clock de 10~MHz surge, o \eng{LED} de travamento acende e o \eng{reset} interno é liberado três clocks depois. Com o \ac{pll} travado, o \eng{testbench} também confere que o clock do \ac{dac} tem 10~MHz, que sua borda de subida ocorre com o clock interno em nível baixo e que os bits do \ac{dac} ficam estáveis de 45~ns antes a 45~ns depois de cada borda. A Figura~\ref{fig:tb_dds} mostra os pinos do \ac{dac}: o seno de 1~kHz após a liberação do botão e o retorno ao código 128 quando o botão é pressionado novamente. A frequência medida nos pinos ficou dentro de 1~Hz de 1~kHz, a tolerância usada no \eng{testbench}.
 
 \begin{figure}
 	\caption{Travamento do \acs{pll} e liberação do \eng{reset} interno na entidade do topo.}

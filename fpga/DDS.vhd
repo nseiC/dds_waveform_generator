@@ -4,8 +4,9 @@
 --   rst_n + locked -> reset_sync -> rst                            |
 --   PC -> jtag_interface -> frequência, sel, escrita na LUT -> dds_core -> dac (8 bits)
 --
--- Pinos (DDS.qsf): clk_50 = CLOCK_50, rst_n = KEY[0], dac = GPIO[9..2] (dac(0) é o LSB),
--- dac_gnd = GPIO[0], led_locked = LEDG[0], led_cmd = LEDG[1].
+-- Pinos (DDS.qsf), os mesmos do código legado: clk_50 = CLOCK_50, rst_n = KEY[0],
+-- dac = GPIO[9..2] (dac(0) é o LSB), dac_clk = GPIO[1], dac_gnd = GPIO[0];
+-- e led_locked = LEDG[0], led_cmd = LEDG[1].
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -21,6 +22,7 @@ entity DDS is
 		clk_50		: in std_logic;											-- 50 MHz da placa
 		rst_n			: in std_logic;											-- KEY[0], ativo em '0'
 		dac			: out std_logic_vector (DATA_WIDTH - 1 downto 0);	-- barramento do DAC0800
+		dac_clk		: out std_logic;											-- clock do DAC (borda no meio da amostra)
 		dac_gnd		: out std_logic;											-- referência de terra no cabo
 		led_locked	: out std_logic;											-- PLL travado
 		led_cmd		: out std_logic											-- muda a cada comando do PC
@@ -56,6 +58,9 @@ begin
 	core : entity work.dds_core
 		port map (clk => clk10, rst => rst, frequency => frequency, sel => sel, lut_we => lut_we,
 					 lut_waddr => lut_waddr, lut_wdata => lut_wdata, sample => dac);
+
+	dclk : entity work.dac_clock
+		port map (clk => clk10, dac_clk => dac_clk);
 
 	dac_gnd <= '0';
 	led_locked <= locked;

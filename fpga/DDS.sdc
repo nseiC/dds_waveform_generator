@@ -17,6 +17,7 @@ if {[get_collection_size [get_clocks -nowarn {altera_reserved_tck}]] > 0} {
 # o grupo assíncrono acima já corta esses caminhos na análise.
 
 # Entradas e saídas sem relação de tempo com o clock: o botão de reset passa pelo
-# reset_sync; o DAC0800 não tem clock (os 8 bits saem juntos dos registradores de I/O); LEDs.
+# reset_sync; o DAC0800 não tem clock (os 8 bits saem juntos dos registradores de I/O, e o
+# dac_clk sai de um registrador DDR, com a borda no meio da amostra); LEDs.
 set_false_path -from [get_ports {rst_n}]
-set_false_path -to [get_ports {dac[*] dac_gnd led_locked led_cmd}]
+set_false_path -to [get_ports {dac[*] dac_clk dac_gnd led_locked led_cmd}]

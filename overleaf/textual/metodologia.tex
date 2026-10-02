@@ -42,7 +42,7 @@ A frequência é pedida pelo computador como um inteiro em hertz, de 18~bits, qu
 
 \subsection{Organização hierárquica}
 
-O projeto digital foi organizado em blocos encapsulados: cada função fica em uma entidade \ac{vhdl} própria, com portas bem definidas, e as entidades de nível mais alto apenas instanciam e ligam as de nível mais baixo. A entidade do topo, \cod{DDS}, não contém lógica: liga o \ac{pll}, o sincronizador de \eng{reset}, o controle pelo computador e o núcleo \ac{dds} aos pinos da placa. A Figura~\ref{fig:hierarquia} mostra a hierarquia completa.
+O projeto digital foi organizado em blocos encapsulados: cada função fica em uma entidade \ac{vhdl} própria, com portas bem definidas, e as entidades de nível mais alto apenas instanciam e ligam as de nível mais baixo. A entidade do topo, \cod{DDS}, não contém lógica: liga o \ac{pll}, o sincronizador de \eng{reset}, o controle pelo computador, o núcleo \ac{dds} e a saída de clock do \ac{dac} aos pinos da placa. A Figura~\ref{fig:hierarquia} mostra a hierarquia completa.
 
 As constantes compartilhadas, como as larguras do caminho de dados, os códigos das instruções do protocolo e os códigos das formas de onda, ficam em um único pacote, \cod{dds\_pkg}. Assim, cada valor é definido em um único lugar, e os blocos e os \eng{testbenches} usam as mesmas definições.
 
@@ -113,7 +113,7 @@ Os três blocos foram agrupados na entidade \cod{jtag\_control}, que contém tod
 
 O \ac{pll} gera o clock de 10~MHz dividindo por cinco o oscilador de 50~MHz. O \eng{reset} do sistema vem do botão KEY[0] e da indicação de travamento do \ac{pll}, e passa por um sincronizador (\cod{reset\_sync}): entra em \eng{reset} de forma assíncrona, assim que o botão é pressionado, e sai em sincronia com o clock, três bordas depois de o botão ser solto. Assim, todos os registradores saem do \eng{reset} na mesma borda.
 
-A Tabela~\ref{tab:pinos} mostra a pinagem. O barramento do \ac{dac} usa os pinos 3 a 10 do conector de expansão, os mesmos de uma versão anterior usada em bancada, e o pino 1 é mantido em nível baixo como referência de terra no cabo. Dois \eng{LEDs} indicam o travamento do \ac{pll} e a chegada de cada comando do computador.
+A Tabela~\ref{tab:pinos} mostra a pinagem, a mesma de uma versão anterior usada em bancada. O barramento do \ac{dac} usa os pinos 3 a 10 do conector de expansão, e o pino 1 é mantido em nível baixo como referência de terra no cabo. O pino 2 leva o clock de 10~MHz invertido, gerado pela entidade \cod{dac\_clock} com um registrador de saída de taxa dupla (\cod{altddio\_out}), o que evita passar o clock pela lógica. A borda de subida desse clock ocorre 50~ns depois da mudança dos bits, no meio da amostra. O DAC0800 não usa clock, mas o pino permite ligar um \ac{dac} com registrador de entrada e serve de gatilho para o osciloscópio. Dois \eng{LEDs} indicam o travamento do \ac{pll} e a chegada de cada comando do computador.
 
 \begin{table}
 	\caption{Pinagem na placa DE2-115.}
@@ -121,8 +121,9 @@ A Tabela~\ref{tab:pinos} mostra a pinagem. O barramento do \ac{dac} usa os pinos
 	\begin{tabular}{l l l l}\toprule
 		Porta & Pino & Sinal na placa & Padrão de E/S\\\midrule
 		\cod{clk\_50} & PIN\_Y2 & CLOCK\_50 & LVTTL 3,3~V\\
-		\cod{rst\_n} & PIN\_M23 & KEY[0] & 2,5~V\\
+		\cod{rst\_n} & PIN\_M23 & KEY[0] & LVTTL 3,3~V\\
 		\cod{dac(0)} a \cod{dac(7)} & PIN\_AB21 a PIN\_AE15 & GPIO[2] a GPIO[9] & LVTTL 3,3~V\\
+		\cod{dac\_clk} & PIN\_AC15 & GPIO[1] & LVTTL 3,3~V\\
 		\cod{dac\_gnd} & PIN\_AB22 & GPIO[0] & LVTTL 3,3~V\\
 		\cod{led\_locked} & PIN\_E21 & LEDG[0] & 2,5~V\\
 		\cod{led\_cmd} & PIN\_E22 & LEDG[1] & 2,5~V\\\bottomrule
@@ -130,7 +131,7 @@ A Tabela~\ref{tab:pinos} mostra a pinagem. O barramento do \ac{dac} usa os pinos
 	\legend{Fonte~---~Autoria própria.}
 \end{table}
 
-As restrições de tempo foram descritas em um arquivo \ac{sdc}: o clock de 50~MHz e os clocks derivados do \ac{pll}; o clock do \ac{jtag} como assíncrono em relação aos demais, já que a travessia é tratada pelo \cod{cmd\_sync}; e caminhos sem requisito de tempo para o botão, os \eng{LEDs} e o barramento do \ac{dac}, que não tem clock.
+As restrições de tempo foram descritas em um arquivo \ac{sdc}: o clock de 50~MHz e os clocks derivados do \ac{pll}; o clock do \ac{jtag} como assíncrono em relação aos demais, já que a travessia é tratada pelo \cod{cmd\_sync}; e caminhos sem requisito de tempo para o botão, os \eng{LEDs}, o barramento do \ac{dac}, que não usa clock, e o próprio clock do \ac{dac}, cuja relação com os dados é fixada pelos registradores junto aos pinos.
 
 \section{Verificação por simulação}
 
@@ -158,7 +159,7 @@ Os blocos do controle são verificados com um modelo de comportamento do Virtual
 		\cod{tb\_control\_registers} & valores após o \eng{reset}, decodificação e pulso de escrita\\
 		\cod{tb\_jtag\_control} & do registrador de dados do \ac{jtag} até os registradores de configuração\\
 		\cod{tb\_system} & do comando do computador até a amostra do \ac{dac}, incluindo o envio de uma tabela\\
-		\cod{tb\_DDS} & entidade do topo com o \ac{pll}: clock, \eng{LEDs}, seno de 1~kHz e \eng{reset}\\\bottomrule
+		\cod{tb\_DDS} & entidade do topo com o \ac{pll}: clocks, \eng{LEDs}, seno de 1~kHz e \eng{reset}\\\bottomrule
 	\end{tabular}
 	\legend{Fonte~---~Autoria própria.}
 \end{table}

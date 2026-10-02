@@ -343,6 +343,7 @@ def fig_hierarquia():
         (3, "arbitrary_LUT", "RAM de duas portas (IP)"),
         (3, "out_mux", "seleção da forma"),
         (2, "output_register", "amostra para o DAC"),
+        (1, "dac_clock", "clock do DAC no GPIO[1]"),
     ]
     dy, dx, h = 0.5, 1.25, 0.36
     n = len(nos)

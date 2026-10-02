@@ -70,6 +70,7 @@ set_global_assignment -name VHDL_FILE phase_accumulator.vhd
 set_global_assignment -name VHDL_FILE out_mux.vhd
 set_global_assignment -name VHDL_FILE LUT.vhd
 set_global_assignment -name VHDL_FILE output_register.vhd
+set_global_assignment -name VHDL_FILE dac_clock.vhd
 set_global_assignment -name VHDL_FILE dds_core.vhd
 set_global_assignment -name VHDL_FILE reset_sync.vhd
 set_global_assignment -name VHDL_FILE vjtag_dr.vhd
@@ -79,8 +80,8 @@ set_global_assignment -name VHDL_FILE jtag_control.vhd
 set_global_assignment -name VHDL_FILE jtag_interface.vhd
 set_global_assignment -name VHDL_FILE DDS.vhd
 set_global_assignment -name SDC_FILE DDS.sdc
-# Pinos da DE2-115. O barramento do DAC usa os mesmos pinos da versão de bancada (TCCV1):
-# dac(0) = GPIO[2] (LSB) ... dac(7) = GPIO[9] (MSB), e GPIO[0] em '0' como referência de terra.
+# Pinos da DE2-115, os mesmos do código legado (TCCV1): dac(0) = GPIO[2] (LSB) ... dac(7) = GPIO[9]
+# (MSB), dac_clk = GPIO[1] e GPIO[0] em '0' como referência de terra.
 set_location_assignment PIN_Y2 -to clk_50
 set_location_assignment PIN_M23 -to rst_n
 set_location_assignment PIN_AB21 -to dac[0]
@@ -91,16 +92,19 @@ set_location_assignment PIN_AD21 -to dac[4]
 set_location_assignment PIN_AE16 -to dac[5]
 set_location_assignment PIN_AD15 -to dac[6]
 set_location_assignment PIN_AE15 -to dac[7]
+set_location_assignment PIN_AC15 -to dac_clk
 set_location_assignment PIN_AB22 -to dac_gnd
 set_location_assignment PIN_E21 -to led_locked
 set_location_assignment PIN_E22 -to led_cmd
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to clk_50
-set_instance_assignment -name IO_STANDARD "2.5 V" -to rst_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to rst_n
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to dac[*]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to dac_clk
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to dac_gnd
 set_instance_assignment -name IO_STANDARD "2.5 V" -to led_locked
 set_instance_assignment -name IO_STANDARD "2.5 V" -to led_cmd
 set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to dac[*]
+set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to dac_clk
 set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to dac_gnd
 set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to led_locked
 set_instance_assignment -name CURRENT_STRENGTH_NEW 8MA -to led_cmd

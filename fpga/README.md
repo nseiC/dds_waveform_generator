@@ -25,17 +25,18 @@ DDS (top-level: pinos da DE2-115)
 │       ├── vjtag_dr            registrador DR e bypass, no domínio do tck
 │       ├── cmd_sync            travessia tck → 10 MHz (toggle sincronizado em 3 flip-flops)
 │       └── control_registers   frequência, forma de onda e escrita na LUT
-└── dds_core                núcleo do DDS, todo em 10 MHz
-    ├── phase_accumulator
-    │   ├── frequency_translator   Hz → FTW, multiplicação em ponto fixo
-    │   ├── word_adder             FTW + fase
-    │   ├── phase_register         registrador de fase de 32 bits
-    │   └── truncator              10 bits mais significativos da fase
-    ├── LUT
-    │   ├── sine_LUT, saw_LUT, sinc_LUT   ROMs 1024 × 8
-    │   ├── arbitrary_LUT                 RAM 1024 × 8 de duas portas
-    │   └── out_mux                       seleção da forma
-    └── output_register     amostra registrada para o DAC
+├── dds_core                núcleo do DDS, todo em 10 MHz
+│   ├── phase_accumulator
+│   │   ├── frequency_translator   Hz → FTW, multiplicação em ponto fixo
+│   │   ├── word_adder             FTW + fase
+│   │   ├── phase_register         registrador de fase de 32 bits
+│   │   └── truncator              10 bits mais significativos da fase
+│   ├── LUT
+│   │   ├── sine_LUT, saw_LUT, sinc_LUT   ROMs 1024 × 8
+│   │   ├── arbitrary_LUT                 RAM 1024 × 8 de duas portas
+│   │   └── out_mux                       seleção da forma
+│   └── output_register     amostra registrada para o DAC
+└── dac_clock               clock do DAC no GPIO[1], com a borda no meio da amostra
 ```
 
 ```mermaid
@@ -112,6 +113,7 @@ A quantização da amostra em 8 bits limita a relação sinal-ruído a cerca de
 | `LUT.vhd` | As quatro memórias e o multiplexador de saída |
 | `out_mux.vhd` | Seleciona a forma: `00` seno, `01` rampa, `10` sinc, `11` arbitrária |
 | `output_register.vhd` | Amostra registrada para o DAC; no reset, código 128 (0 V) |
+| `dac_clock.vhd` | Clock de 10 MHz no pino do DAC, por um registrador DDR (`altddio_out`) |
 | `sine_LUT`, `saw_LUT`, `sinc_LUT` (`.vhd/.qip/.cmp`) | ROMs 1024 × 8 (`altsyncram`), inicializadas pelos `.mif` |
 | `arbitrary_LUT` (`.vhd/.qip/.cmp`) | RAM 1024 × 8 de duas portas: escrita pelo PC, leitura pela fase; começa com o ECG |
 | `PLL` (`.vhd/.qip/.cmp/.ppf`) | ALTPLL: 50 MHz → 10 MHz |
@@ -215,15 +217,21 @@ travado.
 | Porta | Pino | Sinal na placa | Padrão |
 |---|---|---|---|
 | `clk_50` | PIN_Y2 | CLOCK_50 | 3,3-V LVTTL |
-| `rst_n` | PIN_M23 | KEY[0] (apertado = reset) | 2,5 V |
+| `rst_n` | PIN_M23 | KEY[0] (apertado = reset) | 3,3-V LVTTL |
 | `dac[0]` … `dac[7]` | PIN_AB21, Y17, AC21, Y16, AD21, AE16, AD15, AE15 | GPIO[2] … GPIO[9] (LSB … MSB), para J1 da placa analógica | 3,3-V LVTTL |
+| `dac_clk` | PIN_AC15 | GPIO[1], clock de 10 MHz do DAC | 3,3-V LVTTL |
 | `dac_gnd` | PIN_AB22 | GPIO[0] em '0', referência de terra no cabo | 3,3-V LVTTL |
 | `led_locked` | PIN_E21 | LEDG[0] | 2,5 V |
 | `led_cmd` | PIN_E22 | LEDG[1] | 2,5 V |
 
-Os pinos do DAC e do `dac_gnd` são os mesmos da versão usada na bancada (TCCV1 do projeto
-anterior), então o cabo atual serve. Os 8 bits saem de registradores de I/O
-(`FAST_OUTPUT_REGISTER`) e mudam juntos.
+A pinagem é a mesma da versão usada na bancada (TCCV1 do projeto anterior), inclusive os padrões
+de I/O, então o cabo atual serve. Os 8 bits saem de registradores de I/O
+(`FAST_OUTPUT_REGISTER`) e mudam juntos, na borda de subida do clock de 10 MHz.
+
+O `dac_clk` é o clock de 10 MHz invertido, gerado por um registrador DDR de saída: a borda de
+subida dele cai 50 ns depois da mudança dos bits, no meio da amostra. O DAC0800 não usa clock;
+o pino fica para um DAC com registrador de entrada e serve de gatilho para o osciloscópio. Os
+switches `SW[4..0]` do código legado não entram: a forma e a frequência vêm do PC.
 
 ## Síntese
 
@@ -232,18 +240,18 @@ Compilação completa no Quartus 18.1 Lite (outubro de 2026):
 | Recurso | Uso |
 |---|---|
 | Elementos lógicos | 378 de 114 480 (< 1 %) |
-| Registradores | 262 |
+| Registradores | 264 |
 | Bits de memória | 32 768 (as 4 memórias de 1024 × 8) |
 | Multiplicadores de 9 bits | 4 (a conversão Hz → FTW) |
 | PLL | 1 de 4 |
-| Pinos | 13 |
+| Pinos | 14 |
 
 | Clock | Fmax (85 °C) | Folga de setup | Folga de hold |
 |---|---|---|---|
-| 10 MHz (PLL) | 100,25 MHz | 90,0 ns | 0,30 ns |
-| tck do JTAG | 29,68 MHz | 33,2 ns | 0,40 ns |
+| 10 MHz (PLL) | 100,28 MHz | 90,0 ns | 0,32 ns |
+| tck do JTAG | 29,49 MHz | 33,0 ns | 0,40 ns |
 
-O tck do USB-Blaster vai até 6 MHz, bem abaixo dos 29,68 MHz.
+O tck do USB-Blaster vai até 6 MHz, bem abaixo dos 29,49 MHz.
 
 Nenhum caminho fica sem restrição. Os avisos que restam são esperados: portas internas da IP do
 Virtual JTAG sem uso, `dac_gnd` fixo em terra e a nota sobre interfaces de 3,3 V do Cyclone IV.
@@ -280,7 +288,7 @@ Cada um compara o circuito com um modelo de referência e termina com `<nome>: O
 | `tb_control_registers` | Valores depois do reset, decodificação, pulso de escrita e IR 00 ignorado |
 | `tb_jtag_control` | Do DR do JTAG até os registradores, com 64 escritas na LUT |
 | `tb_system` | Do comando do PC até a amostra do DAC, incluindo o envio de uma LUT inteira |
-| `tb_DDS` | Top-level com PLL: 10 MHz, LEDs, seno de 1 kHz nos pinos e reset pelo botão |
+| `tb_DDS` | Top-level com PLL: 10 MHz, clock do DAC, LEDs, seno de 1 kHz nos pinos e reset pelo botão |
 
 Nos testbenches, o modelo da IP do Virtual JTAG é substituído por procedimentos que geram os
 mesmos sinais (tck, IR, Capture/Shift/Update-DR), em `tb_utils_pkg.vhd`.

@@ -1,6 +1,7 @@
 -- Top-level DDS com o PLL e as memórias pelos modelos altera_mf do Quartus.
 --   1. com KEY[0] apertado (rst_n = '0'): DAC no zero do sinal (0x80) e PLL destravado;
---   2. o PLL trava, acende led_locked e gera 10 MHz a partir dos 50 MHz;
+--   2. o PLL trava, acende led_locked e gera 10 MHz a partir dos 50 MHz; dac_clk também tem
+--      10 MHz e o dac fica parado de 45 ns antes a 45 ns depois de cada borda de subida dele;
 --   3. sem PC, a saída é o seno de 1 kHz: cada amostra dos pinos do DAC segue a tabela e a
 --      frequência medida bate com 1 kHz; dac_gnd fica em '0';
 --   4. apertar KEY[0] de novo volta a saída para 0x80 e recomeça a fase.
@@ -22,6 +23,7 @@ architecture sim of tb_DDS is
 	signal clk_50			: std_logic := '0';
 	signal rst_n			: std_logic := '0';
 	signal dac				: std_logic_vector (DATA_WIDTH - 1 downto 0);
+	signal dac_clk			: std_logic;
 	signal dac_gnd			: std_logic;
 	signal led_locked		: std_logic;
 	signal led_cmd			: std_logic;
@@ -31,7 +33,7 @@ begin
 	clk_50 <= not clk_50 after T_CLK50 / 2 when running;
 
 	dut : entity work.DDS
-		port map (clk_50 => clk_50, rst_n => rst_n, dac => dac, dac_gnd => dac_gnd,
+		port map (clk_50 => clk_50, rst_n => rst_n, dac => dac, dac_clk => dac_clk, dac_gnd => dac_gnd,
 					 led_locked => led_locked, led_cmd => led_cmd);
 
 	-- bloco depois do dut: os nomes externos só existem depois que ele é elaborado
@@ -67,6 +69,20 @@ begin
 			end loop;
 			report "período de clk10 = " & time'image((now - t0) / 10);
 			check((now - t0) / 10 = 100 ns, "PLL não está gerando 10 MHz", errors);
+
+			-- clock do DAC: 10 MHz, com a borda de subida no meio da amostra
+			wait until rising_edge(dac_clk);
+			t0 := now;
+			for i in 1 to 10 loop
+				wait until rising_edge(dac_clk);
+			end loop;
+			check((now - t0) / 10 = 100 ns, "dac_clk não está em 10 MHz", errors);
+			for i in 1 to 20 loop
+				wait until rising_edge(dac_clk);
+				check(clk10 = '0', "borda de subida de dac_clk com clk10 em 1", errors);
+				wait for 45 ns;
+				check(dac'stable(90 ns), "dac mudou a menos de 45 ns da borda de dac_clk", errors);
+			end loop;
 
 			-- 3. seno de 1 kHz no DAC, amostra(k) = seno[endereço(k-3)]
 			led := led_cmd;

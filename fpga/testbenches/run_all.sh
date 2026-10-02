@@ -23,7 +23,7 @@ SOURCES=(
 	dds_pkg.vhd
 	PLL.vhd sine_LUT.vhd saw_LUT.vhd sinc_LUT.vhd arbitrary_LUT.vhd jtag/synthesis/jtag.vhd
 	frequency_translator.vhd word_adder.vhd phase_register.vhd truncator.vhd phase_accumulator.vhd
-	out_mux.vhd LUT.vhd output_register.vhd dds_core.vhd
+	out_mux.vhd LUT.vhd output_register.vhd dds_core.vhd dac_clock.vhd
 	reset_sync.vhd vjtag_dr.vhd cmd_sync.vhd control_registers.vhd jtag_control.vhd jtag_interface.vhd
 	DDS.vhd
 )
