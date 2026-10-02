@@ -19,6 +19,14 @@ simulation/
 *.flock
 *_assignment_defaults.qdf
 
+# Simulação analógica: a regra simulation/ acima é para a pasta gerada pelo Quartus
+!analog/simulation/
+
+# LTspice - resultados gerados a cada simulação
+*.raw
+*.fft
+analog/simulation/*.log
+
 # ModelSim
 work/
 transcript

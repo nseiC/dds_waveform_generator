@@ -1,0 +1,245 @@
+*------------------------------------------------------------------------------
+* DAC0800 / DAC0802 - 8-bit multiplying current-output D/A converter
+* Behavioral ("functional") macromodel for LTspice.
+*
+* Based on:
+*   Texas Instruments (National Semiconductor), "DAC0800/DAC0802 8-Bit
+*   Digital-to-Analog Converters", SNAS538C - June 1999, revised Feb 2013
+*
+* This is NOT a transistor-level model.  Every block of the Block Diagram
+* (Figure 4) is reproduced by its terminal behaviour - reference amplifier,
+* reference current source, eight current switches, complementary outputs -
+* with the numbers taken from the Electrical Characteristics table (TYPICAL
+* column) and from the typical curves.  The point is to simulate the DAC as
+* part of a circuit: op-amp output stages, bipolar offsets, multiplying
+* references, a SAR or a waveform generator.
+*
+* ---------------------------------------------------------------------------
+* PIN ORDER  (16-lead PDIP pin order; the SOIC package numbers the same
+* signals differently - the port ORDER below is what matters)
+* ---------------------------------------------------------------------------
+*   1  VLC    threshold control (logic threshold = VLC + 1.4 V)
+*   2  IOUTB  complementary current output (IOUT bar)
+*   3  VM     negative supply V-
+*   4  IOUT   current output
+*   5  B1     MSB          9  B5
+*   6  B2                 10  B6
+*   7  B3                 11  B7
+*   8  B4                 12  B8   LSB
+*  13  VP     positive supply V+
+*  14  VREFP  reference input + (the reference current flows INTO this pin)
+*  15  VREFN  reference input -
+*  16  COMP   reference amplifier compensation (capacitor to V-)
+*
+*   X1 VLC IOUTB VM IOUT B1 B2 B3 B4 B5 B6 B7 B8 VP VREFP VREFN COMP DAC0800
+*
+*   IFS = (VREF/RREF)*255/256,  IOUT = IREF*code/256,
+*   IOUT + IOUTB = IFS for every code (Figure 18)
+*
+* ---------------------------------------------------------------------------
+* WHAT IS MODELLED
+* ---------------------------------------------------------------------------
+*  * Reference amplifier (pins 14, 15, 16): a transconductance stage drives
+*    the COMP node, which sets the reference current IREF sunk at pin 14,
+*    so the loop forces V(14) = V(15).  Its DC gain makes the error ~0.1 mV.
+*    The loop is a single pole set by the internal 5 pF plus your CC:
+*    ~3 MHz with CC = 15 pF and 1 k at pin 14 (Figure 7), very slow and
+*    quiet with the recommended CC = 0.01 uF (Figure 18).  Large-signal
+*    slew 8 mA/us with no CC (dI/dt typ, Figure 26).  Reference bias
+*    current 1 uA out of pin 15 (I15).
+*  * Reference current range: 4.2 mA max for V- = -8 .. -18 V, 2.1 mA for
+*    V- = -5 V (IFSR, Figure 5), soft limit.  Reference common-mode range
+*    down to V- + 4.5 V (Figure 8 at 2 mA): below it IREF collapses.
+*  * Current switches: B1 (MSB) .. B8 (LSB) weigh IREF/2 .. IREF/256; a bit
+*    that is on goes to IOUT, off to IOUTB; the remaining 1/256 is the R-2R
+*    termination, so IOUT + IOUTB = IFS = IREF*255/256.  The weights are
+*    ideal (nonlinearity and full-scale error are inside the typical +-1/2
+*    LSB of the datasheet).  Zero-scale current 0.2 uA (IZS) on each output.
+*  * Logic inputs: threshold VLC + 1.4 V (Figure 10, 25 C), each bit fully
+*    switched within +-0.1 V of it (Figure 13).  2 uA flows OUT of an input
+*    held low, ~0 when high (IIL, IIH, Figure 9).
+*  * Switching: each bit ramps between its two outputs in 70 ns, so the
+*    output crosses 50 % 35 ns after the input (tPLH / tPHL typ) and is
+*    within 1/2 LSB in ~90 ns (ts typ 100 ns), for any code change.
+*  * Output compliance: each output sinks its current down to V- + 4.5 V
+*    (-10.5 V with V- = -15 V: the -10 V of the table, Figure 11 at 2 mA)
+*    and up to any positive voltage (+18 V in the table).  The 1 - 2 V of
+*    extra range a lower IREF gives (Figures 8, 11) is not modelled.
+*  * Supply currents: I+ = 2.2 mA + 10 uA/V*(V+ - V-) (2.3 / 2.4 / 2.5 mA at
+*    10 / 20 / 30 V, the table), and I- = I+ + IREF + IOUT + IOUTB - the
+*    reference and output currents return through V-, so I- = I+ + 2*IREF
+*    (4.3 / 6.4 / 6.5 mA, the table).
+*  * The reference current limit and its common-mode range are referred to
+*    the height of pin 15 above V- (pin 15 is normally at ground, and the
+*    loop holds pin 14 at the same voltage).
+*
+* ---------------------------------------------------------------------------
+* WHAT IS NOT MODELLED  (behavioural model - know the limits)
+* ---------------------------------------------------------------------------
+*  * No temperature model (TCIFS, threshold drift of Figure 10).
+*  * Ideal bit weights: no nonlinearity, no full-scale error, no full-scale
+*    symmetry error, no glitch at major carries (all bits move together).
+*  * Output resistance (> 20 Mohm) and output capacitance are not in the
+*    datasheet: 1 Gohm leakage and COUT = 5 pF (assumed) on each output.
+*  * The positive common-mode limit of the reference amplifier (V+ - 1.5 V),
+*    the logic-input range (-10 .. +18 V), the 36 V / 5 mA / 4.25 mA
+*    absolute maximum ratings and the power supply sensitivity are not
+*    policed.  The reference current cannot go negative (as in the part).
+*  * The SOIC package pin numbering (same subcircuit, other pin numbers).
+*  * A floating logic input reads HIGH here (its 2 uA charges it up).
+*
+* ---------------------------------------------------------------------------
+* PARAMETERS  (override per instance:  X1 ... DAC0800 TSW=100 IZS=1u)
+* ---------------------------------------------------------------------------
+*  VTHO     logic threshold above VLC, V                     (1.4)
+*  VTHW     half-width of the bit transition, V              (0.1)
+*  TSW      bit switching ramp, ns (tpd = TSW/2)             (70)
+*  IIL      current out of a low logic input                 (2 uA)
+*  CIN      logic input capacitance (assumed)                (2 pF)
+*  IZS      zero-scale current on each output                (0.2 uA)
+*  COUT     output capacitance (assumed)                     (5 pF)
+*  GM1      reference amplifier transconductance             (0.4 mS)
+*  I1MAX    its output current limit (sets the 8 mA/us slew) (40 uA)
+*  CINT     internal compensation capacitance                (5 pF)
+*  GM2      reference current per volt on COMP               (1 mA/V)
+*  VCMN     compliance and reference CM limit above V-      (4.5 V)
+*  IBREF    reference bias current out of pin 15             (1 uA)
+*------------------------------------------------------------------------------
+
+.SUBCKT DAC0800 VLC IOUTB VM IOUT B1 B2 B3 B4 B5 B6 B7 B8 VP VREFP VREFN COMP
++ VTHO=1.4 VTHW=0.1 TSW=70 IIL=2u CIN=2p IZS=0.2u COUT=5p
++ GM1=0.4m I1MAX=40u CINT=5p GM2=1m VCMN=4.5 IBREF=1u
+
+*==============================================================================
+* SUPPLY
+*   bias current V+ -> V- (table: 2.3 / 2.4 / 2.5 mA at 10 / 20 / 30 V)
+*==============================================================================
+Bsup  VP VM I = (2.2m + 10u*V(VP,VM))*min(1, uramp(V(VP,VM))/5)
+
+*==============================================================================
+* REFERENCE AMPLIFIER AND REFERENCE CURRENT
+*   gm stage: I = I1MAX*tanh(GM1*(V14-V15)/I1MAX) into COMP (CINT + your CC
+*   to V-, 100 Mohm for a finite DC gain), soft-clamped to V- .. V- + 8 V.
+*   Reference current sunk at pin 14:
+*     Ilin = GM2*(V(COMP)-V- - 1.4 V)          (>= 0)
+*     IREF = Ilin / (1 + (Ilin/Imax)^8)^(1/8)  (soft limit at Imax(V-))
+*     Imax = 2.1 mA at V- = -5 V .. 4.2 mA at V- <= -8 V (Figure 5)
+*   and it collapses when pin 15 gets within VCMN of V-.
+*==============================================================================
+* (+ 0.1 % of GM1 linear: a saturated stage still has a slope, so Newton
+*  finds the operating point; it adds 0.4 uA/V of overdrive to the slew)
+Bea   VM COMP I = {I1MAX}*tanh({GM1}*V(VREFP,VREFN)/{I1MAX}) + 1m*{GM1}*V(VREFP,VREFN)
+Cint  COMP VM {CINT}
+Rint  COMP VM 100Meg
+Bccl  COMP VM I = 1m*(uramp(V(COMP,VM)-8) - uramp(-V(COMP,VM)))
+* reference bias current out of pin 15
+Bib   VP VREFN I = {IBREF}*min(1, uramp(V(VP,VM))/5)
+
+* control: Ilin = GM2*(V(COMP)-V- - 1.4 V), >= 0 (+0.1 % linear below, so
+* that it is never flat while Newton looks for the operating point)
+Bilin n_ilin VM V = 1e3*{GM2}*(uramp(V(COMP,VM)-1.4) + 1m*(V(COMP,VM)-1.4))
+* Imax in mA (node volts): 2.1 mA at |V-| = 5 V, 4.2 mA at |V-| >= 8 V,
+* |V-| taken as the height of pin 15 above V- (pin 15 is normally at
+* ground, and the loop holds pin 14 at the same voltage)
+Bvmag n_vmag VM V = uramp(V(VREFN,VM))
+Bimax n_imax VM V = min(4.2, max(0.2, 2.1*min(1,V(n_vmag,VM)/5) + 0.7*uramp(V(n_vmag,VM)-5)))
+* IREF in mA (node volts), soft-limited at Imax (+0.1 % slope beyond)
+Biref n_iref VM V = V(n_ilin,VM)/pow(1 + pow(V(n_ilin,VM)/V(n_imax,VM),8), 0.125) + 1m*V(n_ilin,VM)
+* reference headroom (Figure 8): IREF collapses with pin 15 below V- + VCMN
+Bkr   n_kr VM V = min(1, max(0, (V(VREFN,VM) - {VCMN})/0.3))
+Bref  VREFP VM I = 1m*V(n_iref,VM)*V(n_kr,VM)
+Cref  VREFP VM 2p
+Rref  VREFP VM 1G
+
+*==============================================================================
+* LOGIC INPUTS  (threshold VLC + VTHO, linear over +-VTHW)
+*   a low input sources IIL (out of the pin), a high one ~0 (Figure 9)
+*   each digitised bit d_k ramps (b_k) between 0 and 1 in TSW ns:
+*   a slew-limited follower written as  b = d - y,  C dy/dt = C dd/dt -
+*   G*slope(y)  - at DC y = 0 exactly, the operating point needs no search.
+*==============================================================================
+Bd1  n_d1 VM V = min(1, max(0, (V(B1,VLC)-{VTHO})/(2*{VTHW}) + 0.5))
+Bd2  n_d2 VM V = min(1, max(0, (V(B2,VLC)-{VTHO})/(2*{VTHW}) + 0.5))
+Bd3  n_d3 VM V = min(1, max(0, (V(B3,VLC)-{VTHO})/(2*{VTHW}) + 0.5))
+Bd4  n_d4 VM V = min(1, max(0, (V(B4,VLC)-{VTHO})/(2*{VTHW}) + 0.5))
+Bd5  n_d5 VM V = min(1, max(0, (V(B5,VLC)-{VTHO})/(2*{VTHW}) + 0.5))
+Bd6  n_d6 VM V = min(1, max(0, (V(B6,VLC)-{VTHO})/(2*{VTHW}) + 0.5))
+Bd7  n_d7 VM V = min(1, max(0, (V(B7,VLC)-{VTHO})/(2*{VTHW}) + 0.5))
+Bd8  n_d8 VM V = min(1, max(0, (V(B8,VLC)-{VTHO})/(2*{VTHW}) + 0.5))
+* input current: IIL out of a low input (needs a live V+)
+Bi1  VP B1 I = {IIL}*(1-V(n_d1,VM))*min(1, uramp(V(VP,B1))/0.5)
+Bi2  VP B2 I = {IIL}*(1-V(n_d2,VM))*min(1, uramp(V(VP,B2))/0.5)
+Bi3  VP B3 I = {IIL}*(1-V(n_d3,VM))*min(1, uramp(V(VP,B3))/0.5)
+Bi4  VP B4 I = {IIL}*(1-V(n_d4,VM))*min(1, uramp(V(VP,B4))/0.5)
+Bi5  VP B5 I = {IIL}*(1-V(n_d5,VM))*min(1, uramp(V(VP,B5))/0.5)
+Bi6  VP B6 I = {IIL}*(1-V(n_d6,VM))*min(1, uramp(V(VP,B6))/0.5)
+Bi7  VP B7 I = {IIL}*(1-V(n_d7,VM))*min(1, uramp(V(VP,B7))/0.5)
+Bi8  VP B8 I = {IIL}*(1-V(n_d8,VM))*min(1, uramp(V(VP,B8))/0.5)
+Ci1  B1 VLC {CIN}
+Ci2  B2 VLC {CIN}
+Ci3  B3 VLC {CIN}
+Ci4  B4 VLC {CIN}
+Ci5  B5 VLC {CIN}
+Ci6  B6 VLC {CIN}
+Ci7  B7 VLC {CIN}
+Ci8  B8 VLC {CIN}
+Ri1  B1 VM 10G
+Ri2  B2 VM 10G
+Ri3  B3 VM 10G
+Ri4  B4 VM 10G
+Ri5  B5 VM 10G
+Ri6  B6 VM 10G
+Ri7  B7 VM 10G
+Ri8  B8 VM 10G
+* switching ramps: slope 1/TSW [1/ns], linear inside 0.1 of error
+Cy1  n_d1 n_y1 1p
+By1  n_y1 VM I = 1m/{TSW}*(min(1,10*uramp(V(n_y1,VM))) - min(1,10*uramp(-V(n_y1,VM))))
+Ry1  n_y1 VM 1G
+Cy2  n_d2 n_y2 1p
+By2  n_y2 VM I = 1m/{TSW}*(min(1,10*uramp(V(n_y2,VM))) - min(1,10*uramp(-V(n_y2,VM))))
+Ry2  n_y2 VM 1G
+Cy3  n_d3 n_y3 1p
+By3  n_y3 VM I = 1m/{TSW}*(min(1,10*uramp(V(n_y3,VM))) - min(1,10*uramp(-V(n_y3,VM))))
+Ry3  n_y3 VM 1G
+Cy4  n_d4 n_y4 1p
+By4  n_y4 VM I = 1m/{TSW}*(min(1,10*uramp(V(n_y4,VM))) - min(1,10*uramp(-V(n_y4,VM))))
+Ry4  n_y4 VM 1G
+Cy5  n_d5 n_y5 1p
+By5  n_y5 VM I = 1m/{TSW}*(min(1,10*uramp(V(n_y5,VM))) - min(1,10*uramp(-V(n_y5,VM))))
+Ry5  n_y5 VM 1G
+Cy6  n_d6 n_y6 1p
+By6  n_y6 VM I = 1m/{TSW}*(min(1,10*uramp(V(n_y6,VM))) - min(1,10*uramp(-V(n_y6,VM))))
+Ry6  n_y6 VM 1G
+Cy7  n_d7 n_y7 1p
+By7  n_y7 VM I = 1m/{TSW}*(min(1,10*uramp(V(n_y7,VM))) - min(1,10*uramp(-V(n_y7,VM))))
+Ry7  n_y7 VM 1G
+Cy8  n_d8 n_y8 1p
+By8  n_y8 VM I = 1m/{TSW}*(min(1,10*uramp(V(n_y8,VM))) - min(1,10*uramp(-V(n_y8,VM))))
+Ry8  n_y8 VM 1G
+* fraction of IREF steered to IOUT:  sum b_k / 2^k
+Bcode n_code VM V = (V(n_d1,VM)-V(n_y1,VM))/2 + (V(n_d2,VM)-V(n_y2,VM))/4
++   + (V(n_d3,VM)-V(n_y3,VM))/8 + (V(n_d4,VM)-V(n_y4,VM))/16
++   + (V(n_d5,VM)-V(n_y5,VM))/32 + (V(n_d6,VM)-V(n_y6,VM))/64
++   + (V(n_d7,VM)-V(n_y7,VM))/128 + (V(n_d8,VM)-V(n_y8,VM))/256
+
+*==============================================================================
+* CURRENT OUTPUTS  (both sink current into the part, returned through V-)
+*   IOUT  = IREF*code/256 + IZS,   IOUTB = IREF*(255-code)/256 + IZS
+*   each one only while its pin is above V- + VCMN (0.3 V soft)
+*==============================================================================
+Bko   n_ko VM V = min(1, max(0, (V(IOUT,VM)  - {VCMN})/0.3))
+Bkob  n_kob VM V = min(1, max(0, (V(IOUTB,VM) - {VCMN})/0.3))
+Bout  IOUT  VM I = (1m*V(n_iref,VM)*V(n_kr,VM)*V(n_code,VM) + {IZS})*V(n_ko,VM)
+Boutb IOUTB VM I = (1m*V(n_iref,VM)*V(n_kr,VM)*(255/256 - V(n_code,VM)) + {IZS})*V(n_kob,VM)
+* pulled further down than that, the saturated switch conducts back out of
+* the pin (1 mS) - it also gives Newton a slope there
+Bclo  VM IOUT  I = 1m*uramp({VCMN} - 2 - V(IOUT,VM))
+Bclob VM IOUTB I = 1m*uramp({VCMN} - 2 - V(IOUTB,VM))
+Co    IOUT  VM {COUT}
+Cob   IOUTB VM {COUT}
+Ro    IOUT  VM 1G
+Rob   IOUTB VM 1G
+* threshold-control pin: no current specified; 1 Gohm keeps it defined
+Rvlc  VLC VM 1G
+
+.ENDS DAC0800
