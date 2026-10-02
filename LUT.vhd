@@ -64,10 +64,12 @@ architecture behavior of LUT is
 	signal addr_casted						: std_logic_vector (9 downto 0);
 	begin
 	addr_casted <= std_logic_vector (addr);
-	sine	: sine_LUT port map (addr_casted,clk,qsine);
-	saw	: saw_LUT  port map (addr_casted,clk,qsaw);
-	sinc	: sinc_LUT port map (addr_casted,clk,qsaw);
-	arb  : arbitrary_LUT port map (addr_casted,clk,qIn,wren,qarb);
-	mux	: out_mux  port map (sel,wren,rst,qsine,qsaw,qarb,qmux);
+	sine	: sine_LUT port map (address => addr_casted, clock => clk, q => qsine);
+	saw	: saw_LUT  port map (address => addr_casted, clock => clk, q => qsaw);
+	sinc	: sinc_LUT port map (address => addr_casted, clock => clk, q => qsinc);
+	arb  : arbitrary_LUT port map (address => addr_casted, clock => clk, data => qIn, wren => wren, q => qarb);
+	mux	: out_mux  port map (sel => sel, wren => wren, rst => rst,
+									  q_sine => qsine, q_saw => qsaw, q_sinc => qsinc, q_arb => qarb,
+									  qout => qmux);
 	qOut <= qmux;
 end architecture; 

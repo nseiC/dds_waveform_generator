@@ -42,13 +42,13 @@ architecture behavior of phase_accumulator is
 		);
 	end component;	
 	
-	signal ftw,fbw,my_word,my_word_out : unsigned ( 31 downto 0);
-	
+	signal ftw,my_word,my_word_out : unsigned ( 31 downto 0);
+
 	begin
 
-	ft1	:	frequency_translator port map(frequency, ftw);
-	wa1	:	word_adder				port map(ftw, fbw, my_word);
-	pr1	:	phase_register			port map(clk, rst,my_word,my_word_out);
-	tr1	:	truncator				port map(my_word_out,bOut);
+	ft1	:	frequency_translator port map(frequency => frequency, FTW => ftw);
+	wa1	:	word_adder				port map(ftw => ftw, feedback => my_word_out, wOut => my_word);
+	pr1	:	phase_register			port map(clk => clk, rst => rst, word => my_word, wOut => my_word_out);
+	tr1	:	truncator				port map(wIn => my_word_out, bOut => bOut);
 	
 end architecture;

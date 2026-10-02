@@ -7,7 +7,9 @@ entity DDS is
 		frequency	: in unsigned (17 downto 0);
 		clk, rst 	: in std_logic;
 		qOut			: out std_logic_vector (7 downto 0);
-		qIn			: in std_logic_vector (7 downto 0)
+		qIn			: in std_logic_vector (7 downto 0);
+		sel			: in std_logic_vector (1 downto 0);
+		wren			: in std_logic
 	);
 end entity;
 
@@ -59,17 +61,16 @@ architecture behavior of DDS is
 		);
 	end component;
 	
-	signal clk50Mhz, clk10MHz 		: std_logic;
+	signal clk10MHz 					: std_logic;
 	signal bOut					  		: unsigned (9 downto 0);
-	signal wren							: std_logic;  	
-	signal sel1							: std_logic_vector ( 1 downto 0);
 	signal tck, tdi, tdo         	: std_logic;
 	signal ir_in, ir_out          : std_logic_vector(1 downto 0);
 	signal vs_cdr, vs_sdr, vs_udr : std_logic;
 	begin
-	pll1	:	PLL 						port map (rst,clk50Mhz,clk10Mhz);
-	pha 	:  phase_accumulator 	port map (frequency,clk,rst,bOut);
-	lut1  :	LUT						port map (qOut,qIn,clk10Mhz,rst,wren,bOut,sel1);
+	pll1	:	PLL 						port map (areset => rst, inclk0 => clk, c0 => clk10MHz, locked => open);
+	pha 	:  phase_accumulator 	port map (frequency => frequency, clk => clk10MHz, rst => rst, bOut => bOut);
+	lut1  :	LUT						port map (qOut => qOut, qIn => qIn, clk => clk10MHz, rst => rst, wren => wren,
+														 addr => bOut, sel => sel);
 	myjtag : jtag 						port map (
 															tck               => tck,
 															tdi               => tdi,
