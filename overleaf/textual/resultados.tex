@@ -138,7 +138,14 @@ A Figura~\ref{fig:tb_core_lat} mostra a saída do \eng{reset} em 100~kHz. Durant
 
 \section{Verificação do controle pelo computador}
 
-\pendente{Inserir a visão RTL do \cod{vjtag\_dr} (caminho \cod{pc}, \cod{ctrl}, \cod{dr} no RTL Viewer).}
+A Figura~\ref{fig:rtl_vjtag} mostra o \cod{vjtag\_dr} no RTL. À esquerda ficam o registrador de deslocamento \cod{dr}, de 18~bits, e o de \eng{bypass}, com os multiplexadores que escolhem entre carregar (Capture-DR) e deslocar (Shift-DR). À direita, os registradores do comando (\cod{ir\_reg}, \cod{data\_reg} e \cod{toggle}) são habilitados pela porta \cod{update}, que combina \cod{vs\_udr} com a comparação de \cod{ir\_in} com \cod{00} (\cod{Equal0}), de modo que a instrução de \eng{bypass} não gera comando. Os valores guardados para o Capture-DR (\cod{shadow}) foram inferidos como uma pequena memória síncrona, e o multiplexador \cod{tdo} escolhe entre o \eng{bypass} e o bit 0 de \cod{dr}.
+
+\begin{figure}
+	\caption{Visão RTL do registrador de dados do Virtual \acs{jtag} (\cod{vjtag\_dr}).}
+	\label{fig:rtl_vjtag}
+	\includegraphics[width=\textwidth]{./figuras/rtl_vjtag_dr}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
 
 A Figura~\ref{fig:tb_vjtag} mostra dois comandos de frequência no bloco \cod{vjtag\_dr}. Em cada um, o Capture-DR é seguido de 18 ciclos de Shift-DR, em que os bits entram por \cod{tdi}, com o \ac{lsb} primeiro, e o registrador \cod{dr} se forma. No Update-DR, o valor é copiado para \cod{cmd\_data} e \cod{cmd\_toggle} muda de nível. Durante o segundo deslocamento, \cod{tdo} devolve o valor do primeiro comando (\cod{2A5A5}), carregado no Capture-DR, o que permite ler a configuração.
 

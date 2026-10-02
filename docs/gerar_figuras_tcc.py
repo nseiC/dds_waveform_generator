@@ -48,7 +48,7 @@ TESTBENCHES = [
 # visões RTL do Quartus (prints em fpga/testbenches/rtl), uma por entidade
 RTL = ["DDS", "dds_core", "phase_accumulator", "frequency_translator", "word_adder", "phase_register",
        "truncator", "LUT", "out_mux", "output_register", "reset_sync", "cmd_sync", "control_registers_1",
-       "control_registers_2", "jtag_control"]
+       "control_registers_2", "jtag_control", "vjtag_dr"]
 # fotos da bancada (analog/figuras) -> nome no TCC
 FOTOS = {"PCB.jpeg": "placa.jpeg", "Setup.jpeg": "bancada.jpeg", "Output .jpeg": "medicao.jpeg",
          "PCB_esquematico.png": "pcb_esquematico.png", "PCB_layout.png": "pcb_layout.png", "PCB_3D.png": "pcb_3d.png",
