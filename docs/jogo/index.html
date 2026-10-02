@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Roda de fase · DDS</title>
+<meta name="description" content="Simulação interativa de um acumulador de fase de DDS: ajuste a palavra de sintonia M, veja a roda girar e a LUT gerar a forma de onda. Inclui o desafio Descubra o M.">
+<link rel="icon" href="../logo/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #EEF2F5; --surface: #FFFFFF; --surface-2: #F4F7FA; --text: #12233A; --muted: #5B6B80;
+  --border: #D5DDE5; --grid: #E4EAF0; --accent: #E8711A; --accent-soft: rgba(232, 113, 26, .14);
+  --filter: #12807A; --ok: #1E8E4E; --bad: #C0392B; --on-accent: #FFFFFF;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0B1626; --surface: #111F33; --surface-2: #0E1A2C; --text: #E6EDF5; --muted: #8FA1B6;
+    --border: #22344D; --grid: #1A2A40; --accent: #FF9A3D; --accent-soft: rgba(255, 154, 61, .16);
+    --filter: #4FD1C5; --ok: #4ADE80; --bad: #F87171; --on-accent: #0B1626;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0B1626; --surface: #111F33; --surface-2: #0E1A2C; --text: #E6EDF5; --muted: #8FA1B6;
+  --border: #22344D; --grid: #1A2A40; --accent: #FF9A3D; --accent-soft: rgba(255, 154, 61, .16);
+  --filter: #4FD1C5; --ok: #4ADE80; --bad: #F87171; --on-accent: #0B1626;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.55 "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.mono, .stat .v, .bit, output { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 20px 16px 48px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.brand svg { flex: none; }
+h1 { font-size: 22px; margin: 0; line-height: 1.2; }
+.sub { margin: 0; color: var(--muted); font-size: 14px; }
+h2 { font-size: 16px; margin: 0 0 10px; }
+a { color: var(--accent); }
+.grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; min-width: 0; }
+.stack { display: grid; gap: 16px; margin-top: 16px; }
+canvas { display: block; width: 100%; }
+.cap { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.cap small { color: var(--muted); }
+
+.bits { display: flex; justify-content: center; gap: 4px; margin: 10px 0 2px; }
+.bit { width: 30px; height: 36px; border-radius: 7px; border: 1px solid var(--border); display: grid; place-items: center; font-size: 15px; color: var(--muted); background: var(--surface-2); }
+.bit.addr { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.bitlegend { display: flex; justify-content: center; gap: 16px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+.bitlegend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; border: 1px solid var(--border); background: var(--surface-2); }
+.bitlegend span.a::before { border-color: var(--accent); background: var(--accent-soft); }
+
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.stat { background: var(--surface-2); border-radius: 10px; padding: 8px 10px; min-width: 0; }
+.stat .k { font-size: 12px; color: var(--muted); }
+.stat .v { font-size: 18px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 8px; }
+.legend i { display: inline-block; width: 16px; height: 0; border-top: 2px solid; margin-right: 6px; vertical-align: 3px; }
+
+.controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 24px; }
+@media (max-width: 860px) { .controls { grid-template-columns: minmax(0, 1fr); } }
+.ctl label, .ctl .lbl { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.ctl output { color: var(--text); font-weight: 600; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 2px 0; }
+.ticks { position: relative; height: 16px; font-size: 11px; color: var(--muted); }
+.ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button { font: inherit; font-size: 14px; color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 7px 12px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+button:disabled { opacity: .45; cursor: default; border-color: var(--border); }
+.seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; padding: 6px 11px; }
+.seg button + button { border-left: 1px solid var(--border); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: 14px; cursor: pointer; }
+.check input { accent-color: var(--accent); }
+.note { font-size: 13px; color: var(--muted); margin: 8px 0 0; min-height: 20px; }
+.note.warn { color: var(--accent); }
+
+.challenge .msg { font-size: 15px; min-height: 24px; margin: 10px 0 6px; }
+.msg.ok { color: var(--ok); font-weight: 600; }
+.msg.bad { color: var(--bad); }
+.score { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; color: var(--muted); }
+.score b { color: var(--text); font-family: "JetBrains Mono", ui-monospace, monospace; }
+.flash { animation: flash .9s ease-out; }
+@keyframes flash { from { box-shadow: 0 0 0 4px var(--ok); } to { box-shadow: 0 0 0 0 transparent; } }
+
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 500; }
+.eq { font-family: "JetBrains Mono", ui-monospace, monospace; background: var(--surface-2); border-radius: 8px; padding: 8px 10px; overflow-x: auto; }
+kbd { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; background: var(--surface-2); }
+footer { margin-top: 20px; font-size: 13px; color: var(--muted); text-align: center; }
+@media (prefers-reduced-motion: reduce) { .flash { animation: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg width="40" height="40" viewBox="0 0 40 40" aria-hidden="true">
+        <circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" stroke-width="2.5" opacity=".35"/>
+        <line x1="20" y1="20" x2="31" y2="9" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="20" cy="20" r="3" fill="var(--accent)"/>
+      </svg>
+      <div>
+        <h1>Roda de fase</h1>
+        <p class="sub">O acumulador de fase de um DDS em câmera lenta</p>
+      </div>
+    </div>
+    <div class="row">
+      <button id="theme" type="button" aria-label="Alternar tema claro/escuro">Tema</button>
+      <a href="https://github.com/nseiC/dds_waveform_generator">Repositório</a>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="t-wheel">
+      <div class="cap"><h2 id="t-wheel">Acumulador de fase</h2><small class="mono" id="lapinfo">volta 0</small></div>
+      <canvas id="wheel" role="img" aria-label="Roda de fase: o ponteiro avança M posições a cada clock; os pontos são os endereços da LUT"></canvas>
+      <div class="bits" id="bits" aria-label="Registrador de fase em binário"></div>
+      <div class="bitlegend"><span class="a" id="lg-addr">endereço da LUT (4 bits)</span><span id="lg-drop">truncados (4 bits)</span></div>
+      <div class="stats">
+        <div class="stat"><div class="k">Registrador de fase</div><div class="v" id="s-ph">0</div></div>
+        <div class="stat"><div class="k">Endereço da LUT</div><div class="v" id="s-addr">0</div></div>
+        <div class="stat"><div class="k">Amostra (código do DAC)</div><div class="v" id="s-code">128</div></div>
+        <div class="stat"><div class="k">Clocks por volta (2<sup>N</sup>/M)</div><div class="v" id="s-cpt">32</div></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="t-out">
+      <div class="cap"><h2 id="t-out">Saída da LUT</h2><small id="plotinfo">últimas 64 amostras, uma por clock</small></div>
+      <canvas id="plot" role="img" aria-label="Gráfico das amostras de saída"></canvas>
+      <div class="legend" id="legend"></div>
+      <div class="stats" style="margin-top:12px">
+        <div class="stat"><div class="k">f<sub>out</sub> / f<sub>clk</sub> = M / 2<sup>N</sup></div><div class="v" id="s-ratio">0,0313</div></div>
+        <div class="stat"><div class="k">f<sub>out</sub> com f<sub>clk</sub> = 10 MHz</div><div class="v" id="s-fout">312,5 kHz</div></div>
+      </div>
+      <p class="note" id="nyq" aria-live="polite"></p>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card" aria-labelledby="t-ctl">
+      <h2 id="t-ctl">Controles</h2>
+      <div class="controls">
+        <div class="ctl">
+          <label for="m">Palavra de sintonia M (passo por clock) <output id="mo" for="m">8</output></label>
+          <input type="range" id="m" min="1" max="255" step="1" value="8">
+          <div class="ticks" aria-hidden="true">
+            <span style="left:0.4%">1</span><span style="left:50%">128 · Nyquist</span><span style="left:99.6%">255</span>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button id="tick" type="button">+1 clock</button>
+            <button id="play" type="button" class="primary">Rodar</button>
+            <button id="reset" type="button">Zerar fase</button>
+          </div>
+          <p class="note"><kbd>Espaço</kbd> 1 clock · <kbd>P</kbd> rodar/pausar · <kbd>R</kbd> zerar · <kbd>←</kbd><kbd>→</kbd> muda M</p>
+        </div>
+        <div class="ctl">
+          <label for="speed">Velocidade <output id="speedo" for="speed">6 clocks/s</output></label>
+          <input type="range" id="speed" min="1" max="40" step="1" value="6">
+          <div class="lbl" style="margin-top:10px">Forma de onda (conteúdo da LUT)</div>
+          <div class="seg" id="shape" role="group" aria-label="Forma de onda">
+            <button type="button" data-v="seno" aria-pressed="true">Seno</button>
+            <button type="button" data-v="triangulo" aria-pressed="false">Triângulo</button>
+            <button type="button" data-v="serra" aria-pressed="false">Dente de serra</button>
+            <button type="button" data-v="sinc" aria-pressed="false">Sinc</button>
+          </div>
+          <div class="lbl" style="margin-top:10px">Bits de endereço da LUT (P)</div>
+          <div class="row">
+            <div class="seg" id="pbits" role="group" aria-label="Bits de endereço">
+              <button type="button" data-v="3" aria-pressed="false">3</button>
+              <button type="button" data-v="4" aria-pressed="true">4</button>
+              <button type="button" data-v="5" aria-pressed="false">5</button>
+              <button type="button" data-v="6" aria-pressed="false">6</button>
+            </div>
+            <label class="check"><input type="checkbox" id="filter" checked> Filtro de reconstrução</label>
+            <label class="check"><input type="checkbox" id="ideal"> Sinal ideal</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card challenge" id="chcard" aria-labelledby="t-ch">
+      <h2 id="t-ch">Desafio: descubra o M</h2>
+      <p style="margin:0">A escada laranja tracejada no gráfico foi gerada com um M secreto, a partir da fase 0.
+        Mexa no M até a sua saída cobrir a do alvo e clique em <b>Conferir</b>.
+        Dica: conte quantos clocks o alvo leva para completar um período. Esse número é 2<sup>N</sup>/M = 256/M.</p>
+      <div class="row" style="margin-top:12px">
+        <div class="seg" id="level" role="group" aria-label="Nível">
+          <button type="button" data-v="facil" aria-pressed="true">Fácil</button>
+          <button type="button" data-v="medio" aria-pressed="false">Médio</button>
+          <button type="button" data-v="dificil" aria-pressed="false">Difícil</button>
+        </div>
+        <button id="chnew" type="button" class="primary">Novo desafio</button>
+        <button id="chcheck" type="button" disabled>Conferir</button>
+        <button id="chreveal" type="button" disabled>Revelar</button>
+        <button id="chquit" type="button" disabled>Sair</button>
+      </div>
+      <p class="msg" id="chmsg" aria-live="polite"></p>
+      <div class="score">
+        <span>Acertos <b id="hits">0</b></span>
+        <span>Tentativas <b id="tries">0</b></span>
+        <span>Sequência <b id="streak">0</b></span>
+        <span>Recorde <b id="best">0</b></span>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="t-how">
+      <h2 id="t-how">Como ler</h2>
+      <p style="margin-top:0">A cada clock o acumulador soma M ao registrador de fase de N bits. Quando passa de 2<sup>N</sup> − 1, ele
+        estoura e volta ao começo: isso é uma volta completa, ou um período do sinal. Só os P bits mais significativos
+        da fase endereçam a LUT, e os outros são truncados (por isso o ponteiro pode andar sem mudar de endereço).
+        A LUT devolve o código de 8 bits que vai para o DAC, e o filtro de reconstrução suaviza os degraus.</p>
+      <div class="eq">f<sub>out</sub> = M · f<sub>clk</sub> / 2<sup>N</sup> &nbsp;&nbsp;·&nbsp;&nbsp; Δf = f<sub>clk</sub> / 2<sup>N</sup> &nbsp;&nbsp;·&nbsp;&nbsp; Nyquist: M &lt; 2<sup>N−1</sup></div>
+      <p>Com M acima de 2<sup>N−1</sup> = 128, a roda anda mais de meia volta por clock e o sinal amostrado parece girar para
+        trás, com frequência (2<sup>N</sup> − M) · f<sub>clk</sub> / 2<sup>N</sup>. É o <i>aliasing</i>. Marque <b>Sinal ideal</b> para ver o sinal
+        que as amostras deveriam representar.</p>
+      <table>
+        <thead><tr><th></th><th>Aqui</th><th>No FPGA do projeto</th></tr></thead>
+        <tbody>
+          <tr><td>Acumulador (N)</td><td class="mono">8 bits</td><td class="mono">32 bits</td></tr>
+          <tr><td>Endereço da LUT (P)</td><td class="mono">3 a 6 bits</td><td class="mono">10 bits (1024 amostras)</td></tr>
+          <tr><td>Amostra (D)</td><td class="mono">8 bits</td><td class="mono">8 bits, DAC0800</td></tr>
+          <tr><td>f<sub>clk</sub></td><td class="mono">10 MHz (para as contas)</td><td class="mono">10 MHz (PLL)</td></tr>
+          <tr><td>Resolução Δf</td><td class="mono">39,06 kHz</td><td class="mono">2,33 mHz</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </div>
+
+  <footer>Gerador de formas de onda DDS em FPGA · TCC · <a href="https://github.com/nseiC/dds_waveform_generator">github.com/nseiC/dds_waveform_generator</a></footer>
+</div>
+
+<script>
+"use strict";
+const N = 8, FULL = 1 << N;   // acumulador de 8 bits: 256 estados de fase
+const F_CLK = 10e6;           // clock do projeto, só para converter em Hz
+const WIN = 64;               // amostras visíveis no gráfico
+const OS = 8;                 // sobreamostragem do filtro de reconstrução
+const FC = 0.12;              // corte do filtro, em fração de f_clk
+
+const SHAPES = {
+  seno: x => Math.sin(2 * Math.PI * x),
+  triangulo: x => x < 0.25 ? 4 * x : x < 0.75 ? 2 - 4 * x : 4 * x - 4,
+  serra: x => ((x + 0.5) % 1) * 2 - 1,
+  sinc: x => { const a = (x - 0.5) * 8; return a === 0 ? 1 : Math.sin(Math.PI * a) / (Math.PI * a); }
+};
+const LEVELS = {
+  facil: () => [2, 4, 8, 16, 32][rand(5)],
+  medio: () => 1 + rand(64),
+  dificil: () => 1 + rand(127)
+};
+
+const st = {
+  M: 8, P: 4, shape: "seno", speed: 6, filter: true, ideal: false,
+  ph: 0, prev: 0, clk: 0, laps: 0, hist: [], trail: [],
+  playing: false, last: 0, acc: 0,
+  ch: null, level: "facil", hits: 0, tries: 0, streak: 0, best: 0
+};
+
+const $ = id => document.getElementById(id);
+const rand = n => Math.floor(Math.random() * n);
+const fmt = (x, d) => x.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+function store(key, value) {
+  try {
+    if (value === undefined) return localStorage.getItem(key);
+    localStorage.setItem(key, value);
+  } catch (e) { return null; }
+}
+
+let lutCache = { key: "", codes: [] };
+function lut() {
+  const key = st.shape + st.P;
+  if (lutCache.key !== key) {
+    const n = 1 << st.P, f = SHAPES[st.shape];
+    lutCache = { key, codes: Array.from({ length: n }, (_, k) => Math.round(128 + 127 * f(k / n))) };
+  }
+  return lutCache.codes;
+}
+const addrOf = ph => ph >> (N - st.P);
+const codeOf = ph => lut()[addrOf(ph)];
+const val = code => (code - 128) / 127;
+
+function sample() {
+  st.hist.push({ ph: st.ph, code: codeOf(st.ph) });
+  if (st.hist.length > 2 * WIN) st.hist.shift();
+}
+
+function step() {
+  st.prev = st.ph;
+  const s = st.ph + st.M;
+  if (s >= FULL) st.laps++;
+  st.ph = s % FULL;
+  st.clk++;
+  st.trail.push(st.prev);
+  if (st.trail.length > 5) st.trail.shift();
+  sample();
+}
+
+function reset() {
+  st.ph = st.prev = st.clk = st.laps = 0;
+  st.hist = []; st.trail = [];
+  sample();
+  draw();
+}
+
+function resampleHist() {
+  // a LUT mudou (forma ou P): recalcula as amostras guardadas com a fase de cada uma
+  st.hist = st.hist.map(h => ({ ph: h.ph, code: codeOf(h.ph) }));
+}
+
+/* ---------- desenho ---------- */
+
+function fitCanvas(cv, aspect, maxH) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = cv.clientWidth;
+  const h = Math.min(maxH, Math.round(w * aspect));
+  if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) {
+    cv.width = Math.round(w * dpr);
+    cv.height = Math.round(h * dpr);
+    cv.style.height = h + "px";
+  }
+  const c = cv.getContext("2d");
+  c.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { c, w, h };
+}
+
+function drawWheel() {
+  const { c, w, h } = fitCanvas($("wheel"), 0.86, 400);
+  const text = css("--text"), muted = css("--muted"), border = css("--border");
+  const accent = css("--accent"), soft = css("--accent-soft");
+  const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.38;
+  const bins = 1 << st.P, bin = 2 * Math.PI / bins;
+  const ang = ph => -Math.PI / 2 + 2 * Math.PI * ph / FULL;
+  c.clearRect(0, 0, w, h);
+
+  // setor do endereço atual da LUT
+  const a0 = -Math.PI / 2 + addrOf(st.ph) * bin;
+  c.fillStyle = soft;
+  c.beginPath(); c.moveTo(cx, cy); c.arc(cx, cy, R, a0, a0 + bin); c.closePath(); c.fill();
+
+  c.strokeStyle = border; c.lineWidth = 1.5;
+  c.beginPath(); c.arc(cx, cy, R, 0, 2 * Math.PI); c.stroke();
+
+  // endereços da LUT
+  const every = bins <= 16 ? 1 : bins <= 32 ? 2 : 4;
+  c.font = `${bins > 16 ? 10 : 11}px "JetBrains Mono", ui-monospace, monospace`;
+  c.textAlign = "center"; c.textBaseline = "middle";
+  for (let k = 0; k < bins; k++) {
+    const a = -Math.PI / 2 + k * bin;
+    c.fillStyle = muted;
+    c.beginPath(); c.arc(cx + R * Math.cos(a), cy + R * Math.sin(a), 2.5, 0, 2 * Math.PI); c.fill();
+    if (k % every === 0) c.fillText(k, cx + (R + 15) * Math.cos(a), cy + (R + 15) * Math.sin(a));
+  }
+
+  // passo do último clock: arco de prev até ph, sempre no sentido horário
+  if (st.clk > 0) {
+    const r = R * 0.58, ap = ang(st.prev), an = ap + 2 * Math.PI * st.M / FULL;
+    c.strokeStyle = accent; c.globalAlpha = 0.45; c.lineWidth = 2;
+    c.beginPath(); c.arc(cx, cy, r, ap, an); c.stroke();
+    c.globalAlpha = 1;
+    const hx = cx + r * Math.cos(an), hy = cy + r * Math.sin(an), t = an + Math.PI / 2;
+    c.fillStyle = accent;
+    c.beginPath();
+    c.moveTo(hx + 6 * Math.cos(t), hy + 6 * Math.sin(t));
+    c.lineTo(hx + 4 * Math.cos(t + 2.3), hy + 4 * Math.sin(t + 2.3));
+    c.lineTo(hx + 4 * Math.cos(t - 2.3), hy + 4 * Math.sin(t - 2.3));
+    c.closePath(); c.fill();
+    // rótulo +M: antes do início do arco quando o passo é curto, para não cair sobre o ponteiro
+    const [al, rl] = an - ap < 1.2 ? [ap - 20 / r, r] : [(ap + an) / 2, r - 16];
+    c.font = '11px "JetBrains Mono", ui-monospace, monospace';
+    c.fillText("+" + st.M, cx + rl * Math.cos(al), cy + rl * Math.sin(al));
+  }
+
+  // rastro das fases anteriores
+  st.trail.forEach((p, i) => {
+    const a = ang(p);
+    c.globalAlpha = 0.15 + 0.12 * i;
+    c.fillStyle = accent;
+    c.beginPath(); c.arc(cx + (R - 9) * Math.cos(a), cy + (R - 9) * Math.sin(a), 3, 0, 2 * Math.PI); c.fill();
+  });
+  c.globalAlpha = 1;
+
+  // ponteiro na fase exata (antes do truncamento)
+  const a = ang(st.ph);
+  c.strokeStyle = accent; c.lineWidth = 3.5; c.lineCap = "round";
+  c.beginPath(); c.moveTo(cx, cy); c.lineTo(cx + (R - 9) * Math.cos(a), cy + (R - 9) * Math.sin(a)); c.stroke();
+  c.fillStyle = accent;
+  c.beginPath(); c.arc(cx, cy, 5.5, 0, 2 * Math.PI); c.fill();
+  c.fillStyle = text;
+  c.beginPath(); c.arc(cx + (R - 9) * Math.cos(a), cy + (R - 9) * Math.sin(a), 3, 0, 2 * Math.PI); c.fill();
+}
+
+function zohPath(c, vals, x0, dx, y) {
+  c.beginPath();
+  vals.forEach((v, i) => {
+    const x = x0 + i * dx;
+    if (i === 0) c.moveTo(x, y(v)); else c.lineTo(x, y(v));
+    c.lineTo(x + dx, y(v));
+  });
+  c.stroke();
+}
+
+function seqFrom0(M) {
+  return Array.from({ length: WIN }, (_, k) => val(codeOf((k * M) % FULL)));
+}
+
+function drawPlot() {
+  const { c, w, h } = fitCanvas($("plot"), 0.52, 360);
+  const text = css("--text"), muted = css("--muted"), grid = css("--grid");
+  const accent = css("--accent"), filt = css("--filter");
+  const L = 38, Rm = 10, T = 12, B = 22;
+  const pw = w - L - Rm, ph = h - T - B, dx = pw / WIN;
+  const y = v => T + ph / 2 - v * ph / 2 * 0.92;
+  c.clearRect(0, 0, w, h);
+
+  // grade e escala em códigos do DAC
+  c.font = '11px "JetBrains Mono", ui-monospace, monospace';
+  c.textAlign = "right"; c.textBaseline = "middle";
+  [[1, "255"], [0, "128"], [-1, "1"]].forEach(([v, lab]) => {
+    c.strokeStyle = grid; c.lineWidth = 1;
+    c.setLineDash(v === 0 ? [] : [4, 4]);
+    c.beginPath(); c.moveTo(L, y(v)); c.lineTo(w - Rm, y(v)); c.stroke();
+    c.fillStyle = muted; c.fillText(lab, L - 6, y(v));
+  });
+  c.setLineDash([]);
+  c.textAlign = "left"; c.textBaseline = "top";
+
+  if (st.ch) {
+    // desafio: alvo (M secreto) e a sua saída, as duas a partir da fase 0
+    c.fillStyle = muted;
+    c.fillText("clock 0 → " + (WIN - 1) + "   (fase inicial 0)", L, h - B + 6);
+    c.strokeStyle = accent; c.lineWidth = 2.5; c.setLineDash([6, 4]);
+    zohPath(c, seqFrom0(st.ch.M), L, dx, y);
+    c.setLineDash([]);
+    c.strokeStyle = text; c.lineWidth = 1.5;
+    zohPath(c, seqFrom0(st.M), L, dx, y);
+    return;
+  }
+
+  const all = st.hist.map(s => val(s.code));
+  const start = Math.max(0, all.length - WIN);
+  const vis = all.slice(start);
+  c.fillStyle = muted;
+  c.fillText("clock " + Math.max(0, st.clk - vis.length + 1) + " → " + st.clk, L, h - B + 6);
+
+  // sinal ideal: a forma de onda na fase contínua, sem truncar nem quantizar
+  if (st.ideal && vis.length) {
+    const f = SHAPES[st.shape];
+    c.strokeStyle = muted; c.lineWidth = 1; c.setLineDash([3, 3]);
+    c.beginPath();
+    const steps = 24;
+    st.hist.slice(start).forEach((s, i) => {
+      for (let j = 0; j <= steps; j++) {
+        const t = j / steps, x = L + (i + t) * dx;
+        const v = f(((s.ph + st.M * t) % FULL) / FULL);
+        if (i === 0 && j === 0) c.moveTo(x, y(v)); else c.lineTo(x, y(v));
+      }
+    });
+    c.stroke(); c.setLineDash([]);
+  }
+
+  // filtro de reconstrução: dois polos reais em FC·f_clk sobre a saída em degraus
+  if (st.filter && all.length) {
+    const a = 1 - Math.exp(-2 * Math.PI * FC / OS);
+    let y1 = all[0], y2 = all[0];
+    c.strokeStyle = filt; c.lineWidth = 2;
+    c.beginPath();
+    let first = true;
+    all.forEach((v, i) => {
+      for (let s = 0; s < OS; s++) {
+        y1 += a * (v - y1); y2 += a * (y1 - y2);
+        if (i >= start) {
+          const x = L + (i - start + s / OS) * dx;
+          if (first) { c.moveTo(x, y(y2)); first = false; } else c.lineTo(x, y(y2));
+        }
+      }
+    });
+    c.stroke();
+  }
+
+  // saída do DAC: degraus (cada amostra dura um clock) e os pontos das amostras
+  c.strokeStyle = text; c.lineWidth = 1.5;
+  zohPath(c, vis, L, dx, y);
+  c.fillStyle = text;
+  vis.forEach((v, i) => { c.beginPath(); c.arc(L + i * dx, y(v), 2, 0, 2 * Math.PI); c.fill(); });
+  if (vis.length) {
+    const i = vis.length - 1;
+    c.fillStyle = accent;
+    c.beginPath(); c.arc(L + i * dx, y(vis[i]), 5, 0, 2 * Math.PI); c.fill();
+  }
+}
+
+function drawLegend() {
+  const items = st.ch
+    ? [["var(--accent)", "alvo (M secreto)", true], ["var(--text)", "sua saída", false]]
+    : [["var(--text)", "saída do DAC (degraus)", false]]
+        .concat(st.filter ? [["var(--filter)", "após o filtro", false]] : [])
+        .concat(st.ideal ? [["var(--muted)", "sinal ideal", true]] : []);
+  $("legend").innerHTML = items.map(([col, lab, dash]) =>
+    `<span><i style="border-top-color:${col};border-top-style:${dash ? "dashed" : "solid"}"></i>${lab}</span>`).join("");
+  $("plotinfo").textContent = st.ch ? "comparação a partir da fase 0" : "últimas 64 amostras, uma por clock";
+}
+
+function drawReadouts() {
+  const bits = st.ph.toString(2).padStart(N, "0");
+  $("bits").innerHTML = [...bits].map((b, i) =>
+    `<div class="bit${i < st.P ? " addr" : ""}">${b}</div>`).join("");
+  $("lg-addr").textContent = `endereço da LUT (${st.P} bits)`;
+  $("lg-drop").textContent = `truncados (${N - st.P} bits)`;
+  $("lapinfo").textContent = `clock ${st.clk} · volta ${st.laps}`;
+  $("s-ph").textContent = `${st.ph} / ${FULL - 1}`;
+  $("s-addr").textContent = `${addrOf(st.ph)} / ${(1 << st.P) - 1}`;
+  $("s-code").textContent = codeOf(st.ph);
+  const cpt = FULL / st.M;
+  $("s-cpt").textContent = Number.isInteger(cpt) ? String(cpt) : fmt(cpt, 2);
+  $("s-ratio").textContent = fmt(st.M / FULL, 4);
+  $("s-fout").textContent = hz(st.M * F_CLK / FULL);
+  const nyq = $("nyq");
+  if (st.M > FULL / 2) {
+    nyq.className = "note warn";
+    nyq.textContent = `M = ${st.M} passa de ${FULL / 2} (Nyquist): a roda anda mais de meia volta por clock e o ` +
+      `sinal amostrado aparece com ${hz((FULL - st.M) * F_CLK / FULL)}, como se girasse para trás (aliasing).`;
+  } else if (st.M === FULL / 2) {
+    nyq.className = "note warn";
+    nyq.textContent = "M = 128: exatamente Nyquist, duas amostras por período.";
+  } else {
+    nyq.className = "note";
+    nyq.textContent = "";
+  }
+}
+
+function hz(f) {
+  return f >= 1e6 ? fmt(f / 1e6, 3) + " MHz" : f >= 1e3 ? fmt(f / 1e3, 2) + " kHz" : fmt(f, 1) + " Hz";
+}
+
+function draw() { drawWheel(); drawPlot(); drawLegend(); drawReadouts(); }
+
+/* ---------- animação ---------- */
+
+function loop(t) {
+  if (!st.playing) return;
+  if (st.last) st.acc += (t - st.last) / 1000 * st.speed;
+  st.last = t;
+  let n = 0;
+  while (st.acc >= 1 && n < 50) { step(); st.acc -= 1; n++; }
+  if (n) draw();
+  requestAnimationFrame(loop);
+}
+
+function setPlaying(on) {
+  st.playing = on;
+  st.last = 0; st.acc = 1;
+  $("play").textContent = on ? "Pausar" : "Rodar";
+  if (on) requestAnimationFrame(loop);
+}
+
+/* ---------- desafio ---------- */
+
+function chUI() {
+  const on = !!st.ch;
+  $("chcheck").disabled = !on;
+  $("chreveal").disabled = !on;
+  $("chquit").disabled = !on;
+  $("hits").textContent = st.hits;
+  $("tries").textContent = st.tries;
+  $("streak").textContent = st.streak;
+  $("best").textContent = st.best;
+}
+
+function chMsg(text, cls) {
+  const m = $("chmsg");
+  m.textContent = text;
+  m.className = "msg" + (cls ? " " + cls : "");
+}
+
+function chNew() {
+  let M;
+  do { M = LEVELS[st.level](); } while (st.ch && M === st.ch.M);
+  st.ch = { M, tries: 0 };
+  chMsg("Novo alvo no gráfico. Qual é o M?");
+  chUI(); draw();
+}
+
+function chCheck() {
+  if (!st.ch) return;
+  st.tries++; st.ch.tries++;
+  if (st.M === st.ch.M) {
+    st.hits++; st.streak++;
+    if (st.streak > st.best) { st.best = st.streak; store("dds-best", String(st.best)); }
+    chMsg(`Acertou! M = ${st.ch.M}: ${fmtCpt(st.ch.M)} clocks por período` +
+      (st.ch.tries === 1 ? ", de primeira." : `, em ${st.ch.tries} tentativas.`), "ok");
+    const card = $("chcard");
+    card.classList.remove("flash"); void card.offsetWidth; card.classList.add("flash");
+    st.ch = null; chUI(); draw();
+    setTimeout(() => { if (!st.ch) chNew(); }, 1600);
+  } else {
+    st.streak = 0;
+    const hint = st.M > st.ch.M ? "A sua saída está mais rápida que o alvo: diminua o M."
+                                : "A sua saída está mais lenta que o alvo: aumente o M.";
+    chMsg(`Ainda não. ${hint}`, "bad");
+    chUI();
+  }
+}
+
+function fmtCpt(M) {
+  const c = FULL / M;
+  return Number.isInteger(c) ? String(c) : fmt(c, 2);
+}
+
+function chReveal() {
+  if (!st.ch) return;
+  st.streak = 0;
+  chMsg(`Era M = ${st.ch.M} (${fmtCpt(st.ch.M)} clocks por período). Tente outro.`);
+  st.M = st.ch.M; $("m").value = st.M; $("mo").textContent = st.M;
+  st.ch = null; chUI(); draw();
+}
+
+function chQuit() {
+  st.ch = null;
+  chMsg("");
+  chUI(); draw();
+}
+
+/* ---------- controles ---------- */
+
+function segment(id, onPick) {
+  const box = $(id);
+  box.addEventListener("click", e => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    box.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
+    onPick(b.dataset.v);
+  });
+}
+
+function setM(M) {
+  st.M = Math.max(1, Math.min(FULL - 1, M));
+  $("m").value = st.M;
+  $("mo").textContent = st.M;
+  draw();
+}
+
+$("m").addEventListener("input", e => setM(+e.target.value));
+$("speed").addEventListener("input", e => {
+  st.speed = +e.target.value;
+  $("speedo").textContent = st.speed + " clocks/s";
+});
+$("tick").addEventListener("click", () => { step(); draw(); });
+$("play").addEventListener("click", () => setPlaying(!st.playing));
+$("reset").addEventListener("click", reset);
+$("filter").addEventListener("change", e => { st.filter = e.target.checked; draw(); });
+$("ideal").addEventListener("change", e => { st.ideal = e.target.checked; draw(); });
+segment("shape", v => { st.shape = v; resampleHist(); draw(); });
+segment("pbits", v => { st.P = +v; resampleHist(); draw(); });
+segment("level", v => { st.level = v; if (st.ch) chNew(); });
+$("chnew").addEventListener("click", chNew);
+$("chcheck").addEventListener("click", chCheck);
+$("chreveal").addEventListener("click", chReveal);
+$("chquit").addEventListener("click", chQuit);
+
+document.addEventListener("keydown", e => {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const tag = (e.target.tagName || "").toLowerCase();
+  const typing = tag === "input" || tag === "button" || tag === "textarea";
+  if (e.key === " " && !typing) { e.preventDefault(); step(); draw(); }
+  else if ((e.key === "p" || e.key === "P") && tag !== "textarea") setPlaying(!st.playing);
+  else if ((e.key === "r" || e.key === "R") && tag !== "textarea") reset();
+  else if (e.key === "ArrowRight" && tag !== "input") setM(st.M + 1);
+  else if (e.key === "ArrowLeft" && tag !== "input") setM(st.M - 1);
+  else if (e.key === "Enter" && st.ch && tag !== "button") chCheck();
+});
+
+function applyTheme(t) {
+  if (t) document.documentElement.setAttribute("data-theme", t);
+  draw();
+}
+$("theme").addEventListener("click", () => {
+  const cur = document.documentElement.getAttribute("data-theme")
+    || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  const next = cur === "dark" ? "light" : "dark";
+  store("dds-theme", next);
+  applyTheme(next);
+});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => draw());
+window.addEventListener("resize", () => draw());
+
+// o navegador pode restaurar os controles ao recarregar: o estado parte deles
+st.M = +$("m").value; $("mo").textContent = st.M;
+st.speed = +$("speed").value; $("speedo").textContent = st.speed + " clocks/s";
+st.filter = $("filter").checked;
+st.ideal = $("ideal").checked;
+st.best = +(store("dds-best") || 0);
+const savedTheme = store("dds-theme");
+if (savedTheme === "light" || savedTheme === "dark") document.documentElement.setAttribute("data-theme", savedTheme);
+chUI();
+reset();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+</script>
+</body>
+</html>

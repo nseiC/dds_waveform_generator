@@ -5,198 +5,164 @@
   </picture>
 </p>
 
-# Gerador de formas de onda DDS em FPGA
+<p align="center">
+  <img alt="FPGA: DE2-115, Cyclone IV E" src="https://img.shields.io/badge/FPGA-DE2--115%20%C2%B7%20Cyclone%20IV%20E-E8711A?style=flat-square&labelColor=12233A">
+  <img alt="Quartus Prime 18.1 Lite" src="https://img.shields.io/badge/Quartus-18.1%20Lite-E8711A?style=flat-square&labelColor=12233A">
+  <img alt="VHDL e GHDL" src="https://img.shields.io/badge/VHDL-GHDL-E8711A?style=flat-square&labelColor=12233A">
+  <img alt="Python 3.12" src="https://img.shields.io/badge/Python-3.12-E8711A?style=flat-square&labelColor=12233A">
+  <img alt="LTspice e Altium" src="https://img.shields.io/badge/anal%C3%B3gico-LTspice%20%C2%B7%20Altium-E8711A?style=flat-square&labelColor=12233A">
+</p>
 
-Trabalho de Conclusão de Curso: gerador de sinais por **Síntese Digital Direta (DDS)**
-implementado em VHDL na placa **Terasic DE2-115** (Intel Cyclone IV E EP4CE115F29C7),
-com saída por DAC paralelo de 8 bits e controle pelo PC via **Virtual JTAG**.
+<p align="center">
+  Trabalho de Conclusão de Curso: gerador de sinais por <b>Síntese Digital Direta (DDS)</b> em VHDL na<br>
+  <b>Terasic DE2-115</b>, com DAC de 8 bits numa placa analógica própria e controle pelo PC via <b>Virtual JTAG</b>.
+</p>
 
-Ferramentas: Quartus Prime 18.1 Lite, GHDL (simulação), Python 3.12 (interface).
+<p align="center">
+  <a href="https://nseic.github.io/dds_waveform_generator/jogo/">
+    <img src="docs/jogo/preview.svg" alt="Animação: a roda de fase avança um passo M a cada clock e a LUT desenha um seno em degraus, que o filtro suaviza" width="100%">
+  </a>
+</p>
 
-> Projeto em desenvolvimento — ver [Estado atual](#estado-atual).
+<p align="center">
+  <b><a href="https://nseic.github.io/dds_waveform_generator/jogo/">▶ Abrir a roda de fase</a></b>: ajuste o M, gire o acumulador e tente o desafio <i>descubra o M</i>.<br>
+  <sub>Sem internet? Abra <code>docs/jogo/index.html</code> no navegador.</sub>
+</p>
 
-## Arquitetura
+## Menu
 
+<table>
+  <tr>
+    <td width="25%" align="center" valign="top">
+      <a href="fpga/README.md"><img src="docs/img/icon-digital.svg" width="56" alt=""><br><b>Parte digital</b></a><br>
+      <sub>VHDL no Cyclone IV: acumulador de fase de 32 bits, LUTs, PLL de 10 MHz, Virtual JTAG e simulação no GHDL</sub>
+    </td>
+    <td width="25%" align="center" valign="top">
+      <a href="analog/README.md"><img src="docs/img/icon-analog.svg" width="56" alt=""><br><b>Parte analógica</b></a><br>
+      <sub>DAC0800, conversor I→V, filtro de reconstrução e ganho; placa no Altium e simulação no LTspice</sub>
+    </td>
+    <td width="25%" align="center" valign="top">
+      <a href="GUI/README.md"><img src="docs/img/icon-gui.svg" width="56" alt=""><br><b>Interface</b></a><br>
+      <sub>GUI em Python: frequência, forma de onda e LUT arbitrária pelo USB-Blaster</sub>
+    </td>
+    <td width="25%" align="center" valign="top">
+      <a href="https://nseic.github.io/dds_waveform_generator/jogo/"><img src="docs/img/icon-jogo.svg" width="56" alt=""><br><b>Roda de fase</b></a><br>
+      <sub>O acumulador em câmera lenta, com aliasing, truncamento de fase e um desafio</sub>
+    </td>
+  </tr>
+</table>
+
+## Como funciona
+
+```mermaid
+flowchart LR
+    subgraph PC
+        GUI["GUI em Python<br/>frequência · forma · LUT"]
+    end
+    subgraph FPGA["FPGA · DE2-115 · 10 MHz"]
+        JTAG["Virtual JTAG"] --> ACC["Acumulador de fase<br/>32 bits, soma M a cada clock"]
+        ACC -- "10 bits de endereço" --> LUT["LUT<br/>seno · rampa · sinc · arbitrária"]
+    end
+    subgraph PLACA["Placa analógica"]
+        DAC["DAC0800"] --> AMP["I→V, filtro<br/>e ganho"]
+    end
+    GUI -- "USB-Blaster" --> JTAG
+    LUT -- "8 bits" --> DAC
+    AMP --> OUT(["Saída analógica"])
 ```
-                       ┌──────────────────────── phase_accumulator ────────────────────────┐
- frequência (Hz) ──18──▶ frequency_translator ──FTW 32──▶ word_adder ──▶ phase_register ──┬─▶ truncator ──10──┐
-                       │   M = (f·K) >> 24                    ▲                           │                 │
-                       │                                      └──── realimentação 32 ─────┘                 │
-                       └────────────────────────────────────────────────────────────────────────────────────┘
-                                                                                                             │ endereço
-                       ┌──────────────────────────────── LUT ───────────────────────────────────┐            │
-                       │  sine_LUT (ROM)  saw_LUT (ROM)  sinc_LUT (ROM)  arbitrary_LUT (RAM) ◀──┼────────────┘
-                       │       └──────────────┴──────────────┴─────────────┘                    │
-                       │                         out_mux ◀── sel (2 bits)                       │
-                       └─────────────────────────────┬──────────────────────────────────────────┘
-                                                     │ 8 bits
- CLOCK_50 ──▶ PLL (÷5) ──▶ 10 MHz (todos os blocos)  ▼
-                                              DAC paralelo 8 bits ──▶ filtro de reconstrução ──▶ saída analógica
 
- PC (GUI Python) ──USB-Blaster──▶ Virtual JTAG ──▶ frequência, sel, escrita na LUT arbitrária
-```
+A cada clock o acumulador soma a palavra de sintonia M ao registrador de fase. O estouro do
+registrador de 32 bits fecha uma volta, ou seja, um período do sinal. Os 10 bits mais
+significativos da fase endereçam a LUT, que devolve a amostra de 8 bits para o DAC. Na placa
+analógica, a corrente do DAC vira tensão e o filtro de reconstrução suaviza os degraus.
 
-O acumulador de fase soma a palavra de sintonia (FTW, ou M) a cada clock; o estouro
-natural do registrador de 32 bits é a volta de 2π. Os 10 bits mais significativos da
-fase endereçam a LUT, que converte fase em amplitude.
+$$
+f_{out} = \frac{M \cdot f_{clk}}{2^{32}}
+\qquad\Rightarrow\qquad
+1\ \text{kHz}:\ M = 429\,496,\ \ f_{out} = 999{,}9983\ \text{Hz}
+$$
 
-## Parâmetros
-
-| Grandeza | Valor |
+| O projeto em números | |
 |---|---|
-| Clock do DDS (f_clk) | 10 MHz (PLL a partir dos 50 MHz da placa) |
-| Acumulador de fase (N) | 32 bits |
-| Resolução de frequência Δf = f_clk / 2³² | ≈ 2,33 mHz |
-| Endereço da LUT (P) | 10 bits → 1024 amostras por período |
-| Largura da amostra / DAC (D) | 8 bits, offset binary (0 V = código 128) |
-| Entrada de frequência | 18 bits, inteiro em Hz (0 a 262 143 Hz) |
-| Conversão Hz → FTW | `M = (f × 7 205 759 404) >> 24` (ponto fixo Q24, K = round(2⁵⁶ / f_clk)) |
-| Limite de Nyquist | 5 MHz (uso prático bem abaixo, conforme DAC e filtro) |
+| Clock do DDS | 10 MHz (PLL a partir dos 50 MHz da placa) |
+| Acumulador de fase | 32 bits, resolução Δf = f<sub>clk</sub> / 2³² ≈ 2,33 mHz |
+| LUT | 1024 amostras × 8 bits, quatro formas (seno, rampa, sinc, arbitrária) |
+| Frequência pedida pelo PC | 0 a 262 143 Hz, inteiro de 18 bits |
+| DAC | DAC0800 de 8 bits, I<sub>REF</sub> = 2 mA |
+| Filtro de reconstrução | Sallen-Key de 2ª ordem, f<sub>0</sub> ≈ 1 MHz |
 
-Relações principais:
+## Na bancada
 
-```
-f_out = M · f_clk / 2^N          Δf = f_clk / 2^N          SFDR (truncamento de fase) ≈ 6,02 · P dB
-```
+<table>
+  <tr>
+    <td width="50%"><img src="analog/figuras/Setup.jpeg" alt="Bancada com a DE2-115, a placa analógica, as fontes e o osciloscópio"></td>
+    <td width="50%"><img src="analog/figuras/Output%20.jpeg" alt="Osciloscópio mostrando um seno de 100 Hz com 5,08 V pico a pico"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>DE2-115, placa analógica, fontes de ±15 V e +10 V e osciloscópio</sub></td>
+    <td align="center"><sub>Primeira medida (3 set. 2026): seno de 100,0 Hz, 5,08 V pico a pico</sub></td>
+  </tr>
+</table>
 
-## Estrutura do repositório
+## Começando
+
+1. **FPGA**: abra `fpga/DDS.qpf` no Quartus 18.1, compile e grave o `.sof` pelo Programmer
+   (chave RUN/PROG em **RUN**). Detalhes em [fpga/README.md](fpga/README.md#compilar-e-gravar).
+2. **Placa**: ligue o barramento de 8 bits do GPIO no J1 e alimente com ±15 V e +10 V
+   ([analog/README.md](analog/README.md#alimentação-e-conectores)).
+3. **PC**: feche o Programmer e rode `cd GUI && ./run.sh`. Conecte, escolha a frequência e a forma
+   de onda. Para a arbitrária, abra `fpga/lut/ecg_1024x8.mif` e clique em *Enviar ao FPGA*
+   ([GUI/README.md](GUI/README.md)).
+
+<details>
+<summary><b>Simular sem a placa</b></summary>
+
+<br>
+
+- **VHDL (GHDL):** `fpga/sim/run_ghdl.sh` simula o top-level com o PLL e as memórias e termina
+  com `tb_DDS: OK` ([detalhes](fpga/README.md#simulação)).
+- **Analógico (LTspice):** `analog/simulation/TCC.asc` simula o front-end com os códigos de um seno
+  de 1 kHz vindos da simulação do VHDL ([detalhes](analog/README.md#simulação-no-ltspice)).
+- **No navegador:** a [roda de fase](https://nseic.github.io/dds_waveform_generator/jogo/) mostra o
+  acumulador, a LUT e o filtro em escala reduzida.
+
+</details>
+
+<details>
+<summary><b>Estrutura do repositório</b></summary>
+
+<br>
 
 | Pasta | Conteúdo |
 |---|---|
-| [`fpga/`](fpga/) | Projeto Quartus: fontes VHDL, IPs, tabelas `.mif` e simulação |
-| [`GUI/`](GUI/) | Interface em Python para controlar o DDS pelo PC ([GUI/README.md](GUI/README.md)) |
-| [`docs/logo/`](docs/logo/) | Logo do projeto em SVG e PNG ([Identidade visual](#identidade-visual)) |
+| [`fpga/`](fpga/) | Projeto Quartus: fontes VHDL, IPs, tabelas `.mif` e simulação no GHDL |
+| [`analog/`](analog/) | Placa no Altium (`layout/`), simulação no LTspice (`simulation/`) e fotos (`figuras/`) |
+| [`GUI/`](GUI/) | Interface em Python e a biblioteca `dds_jtag` |
+| [`docs/`](docs/) | Logo, figuras, a roda de fase (`jogo/`) e o script que gera as figuras |
 
-### `fpga/`
+</details>
 
-| Arquivo | Função |
-|---|---|
-| `DDS.qpf`, `DDS.qsf` | Projeto Quartus |
-| `DDS.vhd` | Top-level: PLL, acumulador de fase, LUT e Virtual JTAG. Portas: `clk`, `rst`, `frequency` (18), `sel` (2), `wren`, `qIn` (8), `qOut` (8) |
-| `phase_accumulator.vhd` | Junta conversor de frequência, somador, registrador de fase e truncador |
-| `frequency_translator.vhd` | Converte frequência em Hz na FTW de 32 bits (multiplicação em ponto fixo) |
-| `word_adder.vhd` | Somador de 32 bits: FTW + fase atual |
-| `phase_register.vhd` | Registrador de fase de 32 bits, com reset assíncrono |
-| `truncator.vhd` | Seleciona os 10 bits mais significativos da fase (31..22) para endereçar a LUT |
-| `LUT.vhd` | Instancia as quatro memórias e o multiplexador de saída |
-| `out_mux.vhd` | Seleciona a forma de onda: `00` seno, `01` rampa, `10` sinc, `11` arbitrária |
-| `sine_LUT`, `saw_LUT`, `sinc_LUT` (`.vhd/.qip/.cmp`) | ROMs 1024 × 8 (`altsyncram`), inicializadas pelos `.mif` |
-| `arbitrary_LUT` (`.vhd/.qip/.cmp`) | RAM 1024 × 8 para a forma de onda arbitrária |
-| `PLL` (`.vhd/.qip/.cmp/.ppf`) | ALTPLL: 50 MHz → 10 MHz |
-| `jtag.qsys`, `jtag/` | Virtual JTAG (Platform Designer): IR de 2 bits |
-| `lut/` | Tabelas `.mif` (abaixo) |
-| `sim/` | Testbench do top-level (`tb_DDS.vhd`, VHDL-2008) e script para rodá-lo no GHDL ([Simulação](#simulação)) |
+## Estado do projeto
 
-## Formas de onda (`fpga/lut/`)
+- [x] Núcleo DDS em VHDL (acumulador de fase, PLL, quatro LUTs) passando no testbench do GHDL
+- [x] Interface em Python com o protocolo do Virtual JTAG
+- [x] Placa analógica projetada, fabricada e medida na bancada
+- [x] Simulação do front-end analógico no LTspice
+- [ ] Bloco de registradores do Virtual JTAG no FPGA, ligando a GUI ao DDS
+- [ ] Pinagem do DAC e restrições de timing (`.sdc`) no Quartus
+- [ ] Ordem dos bits do DAC na simulação do LTspice ([ver aviso](analog/README.md#resultados))
+- [ ] Validação completa na placa, com medidas de frequência e espectro
 
-Todas com 1024 amostras de 8 bits em offset binary, zero do sinal no código 128.
+O detalhe de cada parte está nos READMEs do [FPGA](fpga/README.md#estado-atual), da
+[placa analógica](analog/README.md) e da [interface](GUI/README.md).
 
-| Arquivo | Conteúdo | Uso |
-|---|---|---|
-| `sine_1024x8.mif` | `round(128 + 127·sin(2πk/1024))` | ROM `sine_LUT` |
-| `triangle_1024x8.mif` | Rampa de subida e descida, em fase com o seno | ROM `saw_LUT` |
-| `sinc_1024x8.mif` | `round(128 + 127·sinc((k−512)/64))`, janela x ∈ [−8, 8) | ROM `sinc_LUT` |
-| `ecg_1024x8.mif` | ECG sintético estocástico (modelo ECGSYN) | Forma arbitrária, carregada pela GUI |
+<details>
+<summary><b>Identidade visual</b></summary>
 
-### ECG sintético
-
-Gerado com o modelo dinâmico **ECGSYN** (McSharry et al., 2003), distribuído pelo
-PhysioNet: três EDOs acopladas com as ondas P, Q, R, S e T como gaussianas na fase,
-intervalos RR estocásticos com espectro bimodal (ondas de Mayer a 0,1 Hz e arritmia
-sinusal respiratória a 0,25 Hz, razão LF/HF = 0,5) e ruído de medida.
-Parâmetros: 120 bpm médios, desvio de 3 bpm, ruído de 0,015 mV, semente 2026.
-
-A tabela contém **2 batimentos por período** (RR de 0,502 s e 0,496 s), recortados
-no segmento TP para emendar sem descontinuidade. Assim, com **f = 1 Hz** no DDS, a
-saída é um ECG de **120 bpm**. Escala: ≈ 8,8 µV por código (R ≈ 1,1 mV).
-
-## Controle pelo PC (Virtual JTAG)
-
-| IR | Instrução | DR (18 bits) |
-|---|---|---|
-| `00` | nenhuma | — |
-| `01` | frequência | f em Hz |
-| `10` | forma de onda | `sel` nos 2 bits de baixo |
-| `11` | escrita na LUT arbitrária | `endereço(9..0) & dado(7..0)` |
-
-O PC usa o `quartus_stp` (`device_virtual_ir_shift` / `device_virtual_dr_shift`);
-a GUI em `GUI/` faz isso por trás. Detalhes e instalação em [GUI/README.md](GUI/README.md).
-
-## Como usar
-
-1. Abra `fpga/DDS.qpf` no Quartus 18.1 e compile (*Processing → Start Compilation*).
-   Se a pasta `fpga/jtag/` for apagada, regenere o Virtual JTAG abrindo `fpga/jtag.qsys`
-   no Platform Designer (*Generate HDL*, VHDL).
-2. Grave o `.sof` (`fpga/output_files/DDS.sof`) pelo Programmer (USB-Blaster, chave
-   RUN/PROG da placa em **RUN**).
-3. Feche o Programmer e rode a interface: `cd GUI && ./run.sh`.
-4. Conecte, escolha a frequência e a forma de onda; para a arbitrária, abra
-   `fpga/lut/ecg_1024x8.mif` (ou outro arquivo) e clique em *Enviar ao FPGA*.
-
-## Simulação
-
-`fpga/sim/tb_DDS.vhd` simula o top-level completo, com o PLL e as memórias pelos
-modelos `altera_mf` do Quartus, e confere o resultado sozinho:
-
-- o PLL gera 10 MHz a partir do clock de 50 MHz;
-- o endereço da LUT avança f·1024/f_clk posições por clock e dá a volta na frequência
-  pedida (1 kHz, 100 kHz e 262 143 Hz, tolerância de 0,1 %);
-- `qOut` segue a forma de onda escolhida por `sel`, comparada amostra a amostra com os
-  `.mif`, e a RAM arbitrária devolve o que foi escrito com `wren`.
-
-```bash
-sudo apt install ghdl     # uma vez
-fpga/sim/run_ghdl.sh      # ~3,5 min; termina com "tb_DDS: OK"
-```
-
-Na primeira execução o script compila a biblioteca `altera_mf` em `fpga/sim/work/`
-(o Quartus é procurado em `~/intelFPGA_lite/18.1/quartus` ou em `QUARTUS_ROOTDIR`).
-O testbench usa nomes externos do VHDL-2008 para observar o endereço interno `bOut`.
-O ModelSim-Altera 18.1 para Linux é 32-bit e precisa das bibliotecas i386 do sistema;
-por isso a simulação foi montada no GHDL.
-
-## Estado atual
-
-Implementado:
-
-- Acumulador de fase de 32 bits com conversão Hz → FTW em ponto fixo
-- PLL de 10 MHz a partir do clock de 50 MHz, clock de todo o caminho de dados
-- ROMs de seno, rampa e sinc, RAM arbitrária e multiplexador de saída
-- Virtual JTAG instanciado no top-level
-- Testbench do top-level, passando no GHDL ([Simulação](#simulação))
-- Interface gráfica em Python, com envio de frequência, forma de onda e LUT
-
-Correções de ligação (outubro de 2026), confirmadas na síntese e na simulação:
-
-- `truncator`: o endereço da LUT passou a ser `fase(31..22)`; antes eram os 10 bits
-  menos significativos da fase.
-- `phase_accumulator`: a realimentação do somador agora é a saída do `phase_register`;
-  antes a entrada `feedback` não tinha fonte e o acumulador não acumulava.
-- `LUT`: `sinc_LUT` ligada em `qsinc` (havia dois drivers em `qsaw`) e `out_mux` com
-  mapeamento nomeado; antes `qsinc` ficava de fora e a saída `qout` sem conexão.
-- `DDS`: o PLL recebe a porta `clk` (antes um sinal sem fonte); o acumulador de fase
-  roda em `clk10MHz`, como a LUT e o cálculo da FTW; `sel` e `wren` viraram portas de
-  entrada.
-- Na síntese, o Quartus removia as memórias e o PLL (0 bits de memória). Agora ficam
-  as 4 memórias de 1024 × 8 e o PLL, e os avisos caíram de 90 para 10, todos do
-  Virtual JTAG ainda não ligado.
-
-Pendente:
-
-- Bloco de registradores do JTAG (deslocamento do DR em `tck`, atualização no
-  Update-DR e sincronização para o domínio de 10 MHz)
-- Ligar frequência, `sel` e escrita da LUT arbitrária ao JTAG; hoje são portas do
-  top-level, e `tdo` e `ir_out` do Virtual JTAG ainda não têm fonte
-- Endereço de escrita da LUT arbitrária: hoje a RAM é escrita no endereço da fase;
-  a escrita pelo JTAG vai precisar de um multiplexador de endereço
-- Pinagem do DAC, do clock e do reset (o `DDS.qsf` ainda não tem atribuições de pinos);
-  restrições de timing (`.sdc`)
-- Validação na placa, com medidas de frequência e espectro
-
-## Identidade visual
+<br>
 
 Os arquivos do logo ficam em [`docs/logo/`](docs/logo/), em SVG (vetorial, texto em
-contornos) e PNG (2×). A interface em `GUI/` usa as mesmas cores.
+contornos) e PNG (2×). A interface em `GUI/` e a roda de fase usam as mesmas cores.
 
 | Versão | SVG | PNG |
 |---|---|---|
@@ -215,6 +181,11 @@ senoide em degraus, que é a saída quantizada da LUT.
 
 Tipografia: Space Grotesk (títulos) e JetBrains Mono (dados e código).
 
+As figuras da documentação (animação, LUTs e filtro) são geradas por
+[`docs/gerar_figuras.py`](docs/gerar_figuras.py), que precisa de numpy e matplotlib.
+
+</details>
+
 ## Referências
 
 - Analog Devices. *MT-085: Fundamentals of Direct Digital Synthesis (DDS)*.
@@ -226,4 +197,5 @@ Tipografia: Space Grotesk (títulos) e JetBrains Mono (dados e código).
   Engineering*, 50(3), 2003.
 - A. L. Goldberger et al. "PhysioBank, PhysioToolkit, and PhysioNet". *Circulation*,
   101(23), 2000. ECGSYN: <https://physionet.org/content/ecgsyn/>
+- Texas Instruments. *DAC0800/DAC0802 8-Bit Digital-to-Analog Converters*, SNAS538C.
 - Terasic. *DE2-115 User Manual*.
