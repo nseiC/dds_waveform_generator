@@ -70,6 +70,7 @@ f_out = M · f_clk / 2^N          Δf = f_clk / 2^N          SFDR (truncamento d
 | `jtag.qsys`, `jtag/` | Virtual JTAG (Platform Designer): IR de 2 bits |
 | `lut/` | Tabelas `.mif` (abaixo) |
 | `GUI/` | Interface em Python para controlar o DDS pelo PC ([GUI/README.md](GUI/README.md)) |
+| `sim/` | Testbench do top-level (`tb_DDS.vhd`, VHDL-2008) e script para rodá-lo no GHDL (`run_ghdl.sh`) |
 | `DDS.qpf`, `DDS.qsf` | Projeto Quartus |
 
 ## Formas de onda (`lut/`)
