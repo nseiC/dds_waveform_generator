@@ -43,7 +43,8 @@ TESTBENCHES = [
     "tb_system_visao_geral", "tb_system_detalhes", "tb_DDS_pll", "tb_DDS_saida",
 ]
 # fotos da bancada (analog/figuras) -> nome no TCC
-FOTOS = {"PCB.jpeg": "placa.jpeg", "Setup.jpeg": "bancada.jpeg", "Output .jpeg": "medicao.jpeg"}
+FOTOS = {"PCB.jpeg": "placa.jpeg", "Setup.jpeg": "bancada.jpeg", "Output .jpeg": "medicao.jpeg",
+         "PCB_esquematico.png": "pcb_esquematico.png", "PCB_layout.png": "pcb_layout.png", "PCB_3D.png": "pcb_3d.png"}
 
 
 def estilo() -> None:

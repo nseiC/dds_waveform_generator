@@ -185,7 +185,23 @@ No espectro (FFT do LTspice, resolução de 200 Hz):
 ## Placa (Altium Designer)
 
 O projeto `layout/TCC.PrjPcb` tem dois documentos: o esquemático `OUTPUT_GEN.SchDoc` e a placa
-`PCB1.PcbDoc`.
+`PCB1.PcbDoc`. As imagens abaixo são do projeto aberto no KiCad (importado do Altium).
+
+<p align="center">
+  <img src="figuras/PCB_esquematico.png" alt="Esquemático da placa: conectores, DAC0800, as quatro seções do TL074, o potenciômetro VR1 e o par BC847/BC857" width="100%">
+  <br><sub>Esquemático: conectores J1 a J7, DAC0800 (IC1), as quatro seções do TL074 (U1A a U1D) e VR1. O par Q1/Q2, com D1, D2, R11 e R12, é o estágio classe AB retirado da montagem.</sub>
+</p>
+
+<table>
+  <tr>
+    <td width="55%"><img src="figuras/PCB_layout.png" alt="Layout da placa, com as trilhas das duas faces"></td>
+    <td width="45%"><img src="figuras/PCB_3D.png" alt="Vista 3D da placa com o DAC0800, o TL074 e o potenciômetro"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Layout: trilhas na face superior (vermelho) e na inferior (azul), com preenchimento de cobre</sub></td>
+    <td align="center"><sub>Vista 3D da placa montada</sub></td>
+  </tr>
+</table>
 
 | Arquivo | Conteúdo |
 |---|---|
@@ -196,6 +212,7 @@ O projeto `layout/TCC.PrjPcb` tem dois documentos: o esquemático `OUTPUT_GEN.Sc
 | `TL074CPWRG4.IntLib` | Biblioteca integrada do TL074 |
 | `esquematico.SchDoc`, `PCB.PcbDoc` | Versões anteriores, fora do projeto |
 | `History/`, `__Previews/`, `Project Logs for TCC/` | Arquivos automáticos do Altium (backups locais, prévias e logs de ECO) |
+| `TCC/` | Importação do projeto no KiCad (por enquanto, só o projeto e a biblioteca de símbolos) |
 
 O projeto também usa a biblioteca `..\bibliotecas\BIBLIOTECA_GERAL.SchLib`, que fica fora do
 repositório.

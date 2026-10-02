@@ -30,6 +30,11 @@ analog/simulation/*.log
 # GHDL: formas de onda gravadas com WAVES=1 (testbenches/run_all.sh)
 fpga/testbenches/waves/
 
+# KiCad: travas de arquivo aberto, cópias de segurança e cache
+*.lck
+*-backups/
+fp-info-cache
+
 # ModelSim
 work/
 transcript
