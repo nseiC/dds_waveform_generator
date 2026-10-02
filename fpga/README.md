@@ -240,8 +240,10 @@ Compilação completa no Quartus 18.1 Lite (outubro de 2026):
 
 | Clock | Fmax (85 °C) | Folga de setup | Folga de hold |
 |---|---|---|---|
-| 10 MHz (PLL) | 97,8 MHz | 90,0 ns | 0,30 ns |
-| tck do JTAG | 112,8 MHz | 33,2 ns | 0,40 ns |
+| 10 MHz (PLL) | 100,25 MHz | 90,0 ns | 0,30 ns |
+| tck do JTAG | 29,68 MHz | 33,2 ns | 0,40 ns |
+
+O tck do USB-Blaster vai até 6 MHz, bem abaixo dos 29,68 MHz.
 
 Nenhum caminho fica sem restrição. Os avisos que restam são esperados: portas internas da IP do
 Virtual JTAG sem uso, `dac_gnd` fixo em terra e a nota sobre interfaces de 3,3 V do Cyclone IV.
