@@ -1,0 +1,15 @@
+
+.subckt sources A1 A2 A3 A4 A5 A6 A7 A8 15P 15N 10P
+V1 A1 0 PWL file=C:\users\nicholas\Desktop\TCC\pwl\bit0.txt
+V2 A2 0 PWL file=C:\users\nicholas\Desktop\TCC\pwl\bit1.txt
+V3 A3 0 PWL file=C:\users\nicholas\Desktop\TCC\pwl\bit2.txt
+V4 A4 0 PWL file=C:\users\nicholas\Desktop\TCC\pwl\bit3.txt
+V5 A5 0 PWL file=C:\users\nicholas\Desktop\TCC\pwl\bit4.txt
+V6 A6 0 PWL file=C:\users\nicholas\Desktop\TCC\pwl\bit5.txt
+V7 A7 0 PWL file=C:\users\nicholas\Desktop\TCC\pwl\bit6.txt
+V8 A8 0 PWL file=C:\users\nicholas\Desktop\TCC\pwl\bit7.txt
+V9 15P 0 15
+V10 0 15N 15
+V11 10P 0 10
+.ends sources
+
