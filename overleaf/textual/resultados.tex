@@ -38,9 +38,18 @@ A análise de metaestabilidade do Quartus identificou duas cadeias sincronizador
 
 \section{Verificação do núcleo digital}
 
-Os 16 \eng{testbenches} da Tabela~\ref{tab:testbenches} terminaram sem nenhum erro. A execução completa leva cerca de 2,5~min em um computador pessoal; os mais demorados são o \cod{tb\_frequency\_translator}, que percorre as \(2^{18}\) entradas, e o \cod{tb\_DDS}, que simula o modelo do \ac{pll}. As figuras desta seção e das seguintes foram desenhadas a partir dos sinais gravados nessas simulações.
+Os 16 \eng{testbenches} da Tabela~\ref{tab:testbenches} terminaram sem nenhum erro. A execução completa leva cerca de 2,5~min em um computador pessoal; os mais demorados são o \cod{tb\_frequency\_translator}, que percorre as \(2^{18}\) entradas, e o \cod{tb\_DDS}, que simula o modelo do \ac{pll}. As figuras de simulação desta seção e das seguintes foram desenhadas a partir dos sinais gravados nessas simulações. Antes de cada uma, uma figura mostra o bloco correspondente no RTL Viewer do Quartus, que desenha o circuito inferido a partir do \ac{vhdl}, depois da análise e elaboração do projeto. Os blocos menores, que não são discutidos aqui, têm a visão RTL e a simulação reunidas no Apêndice~\ref{ap:blocos}.
 
 \subsection{Conversão de frequência}
+
+No RTL, o conversor de frequência é um único multiplicador, \cod{Mult0}, entre a frequência de 18~bits e a constante \(K\) de 33~bits (\cod{33'h1ad7f29ac}), como mostra a Figura~\ref{fig:rtl_ftw}. Dos 51~bits do produto, os bits 50 a 24 formam a palavra de sintonia; o deslocamento da Equação~(\ref{eq:ftw}) não gera lógica.
+
+\begin{figure}
+	\caption{Visão RTL do conversor de frequência (\cod{frequency\_translator}).}
+	\label{fig:rtl_ftw}
+	\includegraphics[width=\textwidth]{./figuras/rtl_frequency_translator}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
 
 A Figura~\ref{fig:tb_ftw}(a) mostra a palavra de sintonia para todas as entradas, e a Figura~\ref{fig:tb_ftw}(b) mostra o erro em relação ao valor exato \(f \cdot 2^{32}/f_{clk}\), no trecho de 0 a 2~kHz. O erro é sempre menor que 1~\ac{lsb}, como previsto no Capítulo~\ref{cap:metodologia}: o maior valor em toda a faixa é de 0,99986~\ac{lsb}, em 2\,752~Hz, o que corresponde a um erro de frequência de 2,328~mHz, menor que a resolução \(\Delta f\). O padrão em linhas inclinadas vem da parte fracionária de \(f \cdot 2^{32}/f_{clk}\), que avança 0,4967 a cada hertz.
 
@@ -53,6 +62,15 @@ A Figura~\ref{fig:tb_ftw}(a) mostra a palavra de sintonia para todas as entradas
 
 \subsection{Acumulador de fase}
 
+A Figura~\ref{fig:rtl_acc} mostra o acumulador de fase no RTL: o conversor de frequência alimenta o somador, cuja saída é guardada no registrador de fase; a saída do registrador volta ao somador e segue para o truncador.
+
+\begin{figure}
+	\caption{Visão RTL do acumulador de fase (\cod{phase\_accumulator}).}
+	\label{fig:rtl_acc}
+	\includegraphics[width=\textwidth]{./figuras/rtl_phase_accumulator}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
 A Figura~\ref{fig:tb_acc} mostra o endereço da tabela durante a simulação do acumulador de fase. Em 1~kHz, a palavra de sintonia é 429\,496, e a frequência gerada é de 999,9983~Hz; o endereço percorre os 1024 valores em rampas de 1~ms, e três voltas se completam em 30\,001 clocks (Figura~\ref{fig:tb_acc}(a)). As Figuras~\ref{fig:tb_acc}(b) e (c) mostram as trocas de frequência com o acumulador em operação: em cada troca, o endereço continua do valor em que estava, sem salto, e passa a avançar no novo passo. Com 0~Hz, a fase permanece parada. Em todos os clocks, o endereço coincidiu com o do modelo de referência.
 
 \begin{figure}
@@ -63,6 +81,15 @@ A Figura~\ref{fig:tb_acc} mostra o endereço da tabela durante a simulação do 
 \end{figure}
 
 \subsection{Tabelas de forma de onda}
+
+A Figura~\ref{fig:rtl_lut} mostra a conversão de fase em amplitude no RTL: as três \acsp{rom} e a \acs{ram} recebem o mesmo endereço de leitura, a \acs{ram} tem também as entradas de escrita, e o multiplexador escolhe a saída pelo sinal \cod{sel}. As memórias aparecem como blocos fechados, pois são \acsp{ip}.
+
+\begin{figure}
+	\caption{Visão RTL das tabelas de forma de onda (\cod{LUT}).}
+	\label{fig:rtl_lut}
+	\includegraphics[width=0.75\textwidth]{./figuras/rtl_LUT}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
 
 A Figura~\ref{fig:tb_lut} mostra, para cada memória, o valor lido em cada um dos 1024 endereços, percorridos em ordem embaralhada, sobre o conteúdo esperado dos arquivos \ac{mif}. As seis varreduras terminaram sem nenhuma diferença. A varredura (e) foi feita com a escrita de um novo padrão em toda a \ac{ram} ao mesmo tempo, e confirma que a escrita não perturba a leitura das outras tabelas; a varredura (f) confirma que a \ac{ram} devolve o padrão escrito, três períodos de uma senoide. A Figura~\ref{fig:tb_lut_lat} mostra a latência de dois clocks entre o endereço e a amostra.
 
@@ -81,6 +108,15 @@ A Figura~\ref{fig:tb_lut} mostra, para cada memória, o valor lido em cada um do
 \end{figure}
 
 \subsection{Núcleo DDS}
+
+A Figura~\ref{fig:rtl_core} mostra o núcleo no RTL, com os três blocos ligados em sequência: acumulador de fase, tabelas e registrador de saída.
+
+\begin{figure}
+	\caption{Visão RTL do núcleo \acs{dds} (\cod{dds\_core}).}
+	\label{fig:rtl_core}
+	\includegraphics[width=\textwidth]{./figuras/rtl_dds_core}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
 
 O \eng{testbench} do núcleo \cod{dds\_core} comparou 14\,034 amostras de saída com o modelo de referência, sem nenhuma diferença. A Figura~\ref{fig:tb_core} mostra trechos da saída em cada situação testada. Na Figura~\ref{fig:tb_core}(b), a frequência muda de 100~kHz para 262\,143~Hz no instante marcado pela linha tracejada, e o sinal continua sem descontinuidade. Na Figura~\ref{fig:tb_core}(f), a forma de onda é um dente de serra escrito na \ac{ram} enquanto o seno estava na saída.
 
@@ -102,6 +138,8 @@ A Figura~\ref{fig:tb_core_lat} mostra a saída do \eng{reset} em 100~kHz. Durant
 
 \section{Verificação do controle pelo computador}
 
+\pendente{Inserir a visão RTL do \cod{vjtag\_dr} (caminho \cod{pc}, \cod{ctrl}, \cod{dr} no RTL Viewer).}
+
 A Figura~\ref{fig:tb_vjtag} mostra dois comandos de frequência no bloco \cod{vjtag\_dr}. Em cada um, o Capture-DR é seguido de 18 ciclos de Shift-DR, em que os bits entram por \cod{tdi}, com o \ac{lsb} primeiro, e o registrador \cod{dr} se forma. No Update-DR, o valor é copiado para \cod{cmd\_data} e \cod{cmd\_toggle} muda de nível. Durante o segundo deslocamento, \cod{tdo} devolve o valor do primeiro comando (\cod{2A5A5}), carregado no Capture-DR, o que permite ler a configuração.
 
 \begin{figure}
@@ -111,12 +149,30 @@ A Figura~\ref{fig:tb_vjtag} mostra dois comandos de frequência no bloco \cod{vj
 	\legend{Fonte~---~Autoria própria.}
 \end{figure}
 
+A Figura~\ref{fig:rtl_cmd_sync} mostra o \cod{cmd\_sync} no RTL: a cadeia de três \eng{flip-flops} do sincronizador (\cod{sync}), o registrador \cod{last}, que guarda o último nível visto, a comparação entre os dois e os registradores de saída \cod{valid} e \cod{data}.
+
+\begin{figure}
+	\caption{Visão RTL da passagem de comandos entre domínios de clock (\cod{cmd\_sync}).}
+	\label{fig:rtl_cmd_sync}
+	\includegraphics[width=\textwidth]{./figuras/rtl_cmd_sync}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
 A Figura~\ref{fig:tb_cmd_sync} mostra a passagem de um comando para o domínio de 10~MHz. A mudança de \cod{src\_toggle} percorre os três \eng{flip-flops} do sincronizador; quando chega ao último, o dado é copiado para \cod{dst\_data} e \cod{dst\_valid} pulsa por um clock. No \eng{testbench}, 300 comandos com dados e intervalos aleatórios, gerados por um clock de 6~MHz sem relação de fase com o de destino, foram entregues uma única vez, em ordem e com o dado correto, e um \eng{reset} no destino não repetiu nenhum comando.
 
 \begin{figure}
 	\caption{Passagem de um comando do domínio do \cod{tck} para o de 10~MHz.}
 	\label{fig:tb_cmd_sync}
 	\includegraphics[width=\textwidth]{./figuras/tb_cmd_sync}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+A Figura~\ref{fig:rtl_jtag} mostra o \cod{jtag\_control} no RTL, com os três blocos: \cod{vjtag\_dr}, \cod{cmd\_sync} e \cod{control\_registers}. O comando de 20~bits sai do \cod{vjtag\_dr}, atravessa o \cod{cmd\_sync} e é separado em instrução e dado na entrada dos registradores.
+
+\begin{figure}
+	\caption{Visão RTL do controle pelo computador (\cod{jtag\_control}).}
+	\label{fig:rtl_jtag}
+	\includegraphics[width=\textwidth]{./figuras/rtl_jtag_control}
 	\legend{Fonte~---~Autoria própria.}
 \end{figure}
 
@@ -130,6 +186,15 @@ A Figura~\ref{fig:tb_jtag} mostra o caminho completo de um comando de 440~Hz no 
 \end{figure}
 
 \section{Verificação do sistema}
+
+A Figura~\ref{fig:rtl_dds} mostra a entidade do topo no RTL. Ela contém apenas as ligações entre o \ac{pll}, o \cod{reset\_sync}, o \cod{jtag\_interface} e o \cod{dds\_core}, além da porta OU que combina o botão de \eng{reset} com a indicação de travamento do \ac{pll}.
+
+\begin{figure}
+	\caption{Visão RTL da entidade do topo (\cod{DDS}).}
+	\label{fig:rtl_dds}
+	\includegraphics[width=\textwidth]{./figuras/rtl_DDS}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
 
 O \eng{testbench} \cod{tb\_system} reúne o controle e o núcleo e faz o papel do computador, enviando a mesma sequência de comandos que a interface gráfica enviaria. A Figura~\ref{fig:tb_sys} mostra a saída durante toda a simulação. Após o \eng{reset}, sem nenhum comando, o gerador produz o seno de 1~kHz. Em seguida, o computador pede 100~kHz e seno, depois sinc, envia uma tabela inteira, com 1024 escritas, e escolhe a forma arbitrária em 50~kHz. A Figura~\ref{fig:tb_sys_det}(a) mostra o momento em que o comando de frequência chega, e a Figura~\ref{fig:tb_sys_det}(b), a tabela enviada sendo reproduzida. Em cada trecho, cada amostra foi comparada com a tabela correspondente, e a frequência medida pelas voltas do endereço coincidiu com a pedida, dentro da tolerância de 0,1\% usada no \eng{testbench}.
 

@@ -192,7 +192,15 @@ O ganho é ajustado por um amplificador inversor com um potenciômetro de 10~k\(
 
 A placa foi desenhada com mais um estágio depois do seguidor: um par complementar BC847 e BC857, polarizado por dois diodos LL4148 em classe AB, para aumentar a corrente de saída. Esse estágio foi retirado por apresentar distorção e resultados inesperados nos ensaios, e a saída passou a ser tomada diretamente do seguidor. \pendente{Descrever a distorção observada no estágio classe AB.}
 
-A placa foi projetada no Altium Designer e fabricada em duas faces. A Figura~\ref{fig:pcb_esquematico} mostra o esquemático, a Figura~\ref{fig:pcb_layout}, o layout das trilhas, e a Figura~\ref{fig:placa}, a vista tridimensional e a placa montada. O esquemático e o layout ainda incluem o estágio classe AB (Q1, Q2, D1, D2, R11 e R12), que foi retirado da montagem. O circuito, sem o estágio classe AB, foi simulado no LTspice com um macromodelo comportamental do DAC0800, escrito a partir das características típicas da folha de dados \cite{ti2013}: referência, divisão da corrente entre as saídas, limiar lógico, tempo de comutação de 70~ns e limites de conformidade das saídas. Os estímulos das entradas digitais são fontes lineares por partes geradas a partir da simulação do \ac{vhdl}, para uma senoide de 1~kHz.
+A placa foi projetada no Altium Designer e fabricada em duas faces. A Figura~\ref{fig:pcb_esquematico} mostra o esquemático, a Figura~\ref{fig:pcb_layout}, o layout das trilhas, e a Figura~\ref{fig:placa}, a vista tridimensional e a placa montada. O esquemático e o layout ainda incluem o estágio classe AB (Q1, Q2, D1, D2, R11 e R12), que foi retirado da montagem. O circuito, sem o estágio classe AB, foi simulado no LTspice com um macromodelo comportamental do DAC0800, escrito a partir das características típicas da folha de dados \cite{ti2013}: referência, divisão da corrente entre as saídas, limiar lógico, tempo de comutação de 70~ns e limites de conformidade das saídas. Os estímulos das entradas digitais são fontes lineares por partes geradas a partir da simulação do \ac{vhdl}, para uma senoide de 1~kHz. A Figura~\ref{fig:ltspice} mostra o esquemático simulado, com os nós cujas tensões são analisadas no Capítulo~\ref{cap:resultados}.
+
+\begin{figure}
+	\caption{Esquemático da simulação da placa analógica no LTspice: fontes dos estímulos (U7), DAC0800 (U1), conversor corrente-tensão (U2), estágio de ganho (U3), filtro de reconstrução (U4) e \eng{buffer} (U5).}
+	\label{fig:ltspice}
+	\includegraphics[width=\textwidth]{./figuras/ltspice_esquematico}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
 
 \begin{figure}
 	\caption{Esquemático da placa analógica.}

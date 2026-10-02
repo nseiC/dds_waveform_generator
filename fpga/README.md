@@ -117,7 +117,7 @@ A quantização da amostra em 8 bits limita a relação sinal-ruído a cerca de
 | `PLL` (`.vhd/.qip/.cmp/.ppf`) | ALTPLL: 50 MHz → 10 MHz |
 | `jtag.qsys`, `jtag/` | Virtual JTAG (Platform Designer), IR de 2 bits |
 | `lut/` | Tabelas `.mif` das formas de onda ([abaixo](#formas-de-onda-lut)) |
-| `testbenches/` | Um testbench por bloco, o script que roda todos e as figuras ([Testbenches](#testbenches)) |
+| `testbenches/` | Um testbench por bloco, o script que roda todos, as figuras e as visões RTL do Quartus ([Testbenches](#testbenches)) |
 
 <details>
 <summary><b>Como a frequência vira FTW sem divisor</b> (<code>frequency_translator</code>)</summary>
@@ -331,6 +331,23 @@ python3 fpga/testbenches/gerar_figuras.py --sem-simular  # só redesenha
 | `tb_vjtag_dr`, `tb_cmd_sync`, `tb_control_registers`, `tb_jtag_control` | O caminho de um comando do JTAG até os registradores |
 | `tb_system_visao_geral`, `tb_system_detalhes` | A saída durante a sequência de comandos do PC e a LUT enviada |
 | `tb_DDS_pll`, `tb_DDS_saida` | Travamento do PLL e o seno de 1 kHz nos pinos do DAC |
+
+### Visões RTL
+
+[`testbenches/rtl/`](testbenches/rtl/) tem as prints do RTL Viewer do Quartus (*Tools → Netlist
+Viewers → RTL Viewer*) de cada entidade testada, para acompanhar as figuras dos testbenches no
+TCC. `rtl_virtual_jtag_ip.png` mostra o interior do IP do Virtual JTAG.
+
+<table>
+  <tr>
+    <td width="50%"><img src="testbenches/rtl/rtl_dds_core.png" alt="Visão RTL do dds_core: acumulador de fase, LUT e registrador de saída"></td>
+    <td width="50%"><img src="testbenches/rtl/rtl_output_register.png" alt="Visão RTL do output_register: bits 0 a 6 com clear e bit 7 com preset"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><code>dds_core</code>: acumulador de fase, tabelas e registrador de saída</sub></td>
+    <td align="center"><sub><code>output_register</code>: o reset em 0x80 vira clear nos bits 0 a 6 e preset no bit 7</sub></td>
+  </tr>
+</table>
 
 ## Estado atual
 

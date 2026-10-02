@@ -129,6 +129,11 @@ A pasta `simulation/` tem o front-end completo no LTspice 26, alimentado pelos c
 | `pwl/` | PWL de cada bit, código por amostra e saída de um DAC ideal; detalhes em [`pwl/LEIAME.txt`](simulation/pwl/LEIAME.txt) |
 | `resultados/` | Formas de onda (`WAVEFORMS.txt.gz`) e FFT (`WAVEFORMS_FFT.txt.gz`) exportadas do LTspice; as figuras do TCC saem delas |
 
+<p align="center">
+  <img src="figuras/LTspice_esquematico.png" alt="Esquemático da simulação no LTspice: fontes, DAC0800, conversor corrente-tensão, ganho, filtro e buffer" width="100%">
+  <br><sub>Esquemático simulado: fontes dos estímulos (U7), DAC0800 (U1), conversor I→V (U2), ganho (U3), filtro (U4) e buffer (U5)</sub>
+</p>
+
 Estímulo: f = 1000 Hz no DDS (FTW = 429 496, ou 999,9983 Hz), 50 001 amostras a 10 MHz
 (5 períodos), níveis de 0 e 3,3 V com bordas de 2 ns.
 

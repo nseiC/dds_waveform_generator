@@ -41,10 +41,18 @@ TESTBENCHES = [
     "tb_frequency_translator", "tb_phase_accumulator", "tb_LUT_tabelas", "tb_LUT_latencia",
     "tb_dds_core_formas", "tb_dds_core_latencia", "tb_vjtag_dr", "tb_cmd_sync", "tb_jtag_control",
     "tb_system_visao_geral", "tb_system_detalhes", "tb_DDS_pll", "tb_DDS_saida",
+    # blocos menores (Apêndice B)
+    "tb_word_adder", "tb_phase_register", "tb_truncator", "tb_out_mux", "tb_output_register",
+    "tb_reset_sync", "tb_control_registers",
 ]
+# visões RTL do Quartus (prints em fpga/testbenches/rtl), uma por entidade
+RTL = ["DDS", "dds_core", "phase_accumulator", "frequency_translator", "word_adder", "phase_register",
+       "truncator", "LUT", "out_mux", "output_register", "reset_sync", "cmd_sync", "control_registers_1",
+       "control_registers_2", "jtag_control"]
 # fotos da bancada (analog/figuras) -> nome no TCC
 FOTOS = {"PCB.jpeg": "placa.jpeg", "Setup.jpeg": "bancada.jpeg", "Output .jpeg": "medicao.jpeg",
-         "PCB_esquematico.png": "pcb_esquematico.png", "PCB_layout.png": "pcb_layout.png", "PCB_3D.png": "pcb_3d.png"}
+         "PCB_esquematico.png": "pcb_esquematico.png", "PCB_layout.png": "pcb_layout.png", "PCB_3D.png": "pcb_3d.png",
+         "LTspice_esquematico.png": "ltspice_esquematico.png"}
 
 
 def estilo() -> None:
@@ -489,6 +497,9 @@ def main() -> None:
     for nome in TESTBENCHES:
         shutil.copyfile(tb / f"{nome}.pdf", OUT / f"{nome}.pdf")
         print(f"  figuras/{nome}.pdf")
+    for nome in RTL:
+        shutil.copyfile(ROOT / "fpga" / "testbenches" / "rtl" / f"rtl_{nome}.png", OUT / f"rtl_{nome}.png")
+        print(f"  figuras/rtl_{nome}.png")
     for orig, dest in FOTOS.items():
         shutil.copyfile(ROOT / "analog" / "figuras" / orig, OUT / dest)
         print(f"  figuras/{dest}")
