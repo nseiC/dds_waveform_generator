@@ -2,37 +2,64 @@
 
 [← Voltar ao início](../README.md) · [Parte analógica](../analog/README.md) · [Interface (GUI)](../GUI/README.md) · [Roda de fase (jogo)](https://nseic.github.io/dds_waveform_generator/jogo/)
 
-Núcleo do gerador, em VHDL: acumulador de fase de 32 bits, quatro memórias de forma de onda
-e o Virtual JTAG para controle pelo PC. Roda na **Terasic DE2-115** (Intel Cyclone IV E
-EP4CE115F29C7) e entrega a cada clock um código de 8 bits para o DAC da
-[placa analógica](../analog/README.md).
+Núcleo do gerador, em VHDL: acumulador de fase de 32 bits, quatro memórias de forma de onda,
+registrador de saída para o DAC e o controle pelo PC via Virtual JTAG. Roda na
+**Terasic DE2-115** (Intel Cyclone IV E EP4CE115F29C7) e entrega a cada clock um código de
+8 bits para o DAC da [placa analógica](../analog/README.md).
 
 Ferramentas: Quartus Prime 18.1 Lite (síntese) e GHDL (simulação).
 
 ## Arquitetura
 
-```
-                       ┌──────────────────────── phase_accumulator ────────────────────────┐
- frequência (Hz) ──18──▶ frequency_translator ──FTW 32──▶ word_adder ──▶ phase_register ──┬─▶ truncator ──10──┐
-                       │   M = (f·K) >> 24                    ▲                           │                 │
-                       │                                      └──── realimentação 32 ─────┘                 │
-                       └────────────────────────────────────────────────────────────────────────────────────┘
-                                                                                                             │ endereço
-                       ┌──────────────────────────────── LUT ───────────────────────────────────┐            │
-                       │  sine_LUT (ROM)  saw_LUT (ROM)  sinc_LUT (ROM)  arbitrary_LUT (RAM) ◀──┼────────────┘
-                       │       └──────────────┴──────────────┴─────────────┘                    │
-                       │                         out_mux ◀── sel (2 bits)                       │
-                       └─────────────────────────────┬──────────────────────────────────────────┘
-                                                     │ 8 bits
- CLOCK_50 ──▶ PLL (÷5) ──▶ 10 MHz (todos os blocos)  ▼
-                                              DAC paralelo 8 bits ──▶ filtro de reconstrução ──▶ saída analógica
+Cada função fica numa entidade própria, e o top-level só liga os blocos aos pinos da placa.
+As constantes (larguras, protocolo do JTAG, códigos das formas) ficam num pacote único,
+`dds_pkg`.
 
- PC (GUI Python) ──USB-Blaster──▶ Virtual JTAG ──▶ frequência, sel, escrita na LUT arbitrária
+```
+DDS (top-level: pinos da DE2-115)
+├── PLL                     50 MHz → 10 MHz (IP ALTPLL)
+├── reset_sync              KEY[0] e PLL destravado → reset liberado em sincronia com os 10 MHz
+├── jtag_interface          controle pelo PC
+│   ├── jtag                Virtual JTAG (IP do Platform Designer)
+│   └── jtag_control        lógica do controle, testável sem a IP
+│       ├── vjtag_dr            registrador DR e bypass, no domínio do tck
+│       ├── cmd_sync            travessia tck → 10 MHz (toggle sincronizado em 3 flip-flops)
+│       └── control_registers   frequência, forma de onda e escrita na LUT
+└── dds_core                núcleo do DDS, todo em 10 MHz
+    ├── phase_accumulator
+    │   ├── frequency_translator   Hz → FTW, multiplicação em ponto fixo
+    │   ├── word_adder             FTW + fase
+    │   ├── phase_register         registrador de fase de 32 bits
+    │   └── truncator              10 bits mais significativos da fase
+    ├── LUT
+    │   ├── sine_LUT, saw_LUT, sinc_LUT   ROMs 1024 × 8
+    │   ├── arbitrary_LUT                 RAM 1024 × 8 de duas portas
+    │   └── out_mux                       seleção da forma
+    └── output_register     amostra registrada para o DAC
+```
+
+```mermaid
+flowchart LR
+    subgraph TCK["domínio do tck (JTAG)"]
+        IP["Virtual JTAG"] --> DR["vjtag_dr"]
+    end
+    subgraph CLK["domínio de 10 MHz"]
+        SYNC["cmd_sync"] --> REGS["control_registers"]
+        REGS -- "frequência" --> ACC["phase_accumulator"]
+        ACC -- "endereço" --> LUT["LUT"]
+        REGS -- "sel" --> LUT
+        REGS -- "escrita" --> LUT
+        LUT --> OUT["output_register"]
+    end
+    PC(["PC: quartus_stp"]) -- "USB-Blaster" --> IP
+    DR -- "comando + toggle" --> SYNC
+    OUT -- "8 bits" --> DAC(["DAC0800"])
 ```
 
 O acumulador de fase soma a palavra de sintonia (FTW, ou M) a cada clock. O estouro natural
 do registrador de 32 bits é a volta de 2π. Os 10 bits mais significativos da fase endereçam
-a LUT, que converte fase em amplitude.
+a LUT, que converte fase em amplitude. Da fase até o pino do DAC são 3 clocks: 2 das memórias
+(endereço e saída registrados) e 1 do registrador de saída.
 
 > [!TIP]
 > Para ver isso funcionando em câmera lenta, abra a **[roda de fase](https://nseic.github.io/dds_waveform_generator/jogo/)**:
@@ -49,6 +76,7 @@ a LUT, que converte fase em amplitude.
 | Largura da amostra (D) | 8 bits, offset binary (zero do sinal = código 128) |
 | Entrada de frequência | 18 bits, inteiro em Hz (0 a 262 143 Hz) |
 | Conversão Hz → FTW | `M = (f × 7 205 759 404) >> 24` (ponto fixo Q24) |
+| Depois do reset | seno de 1 kHz, sem precisar do PC |
 | Limite de Nyquist | 5 MHz (na prática, bem abaixo, conforme o DAC e o filtro) |
 
 Relações principais:
@@ -66,21 +94,30 @@ A quantização da amostra em 8 bits limita a relação sinal-ruído a cerca de
 
 | Arquivo | Função |
 |---|---|
-| `DDS.qpf`, `DDS.qsf` | Projeto Quartus (Cyclone IV E EP4CE115F29C7, top-level `DDS`) |
-| `DDS.vhd` | Top-level: PLL, acumulador de fase, LUT e Virtual JTAG. Portas: `clk`, `rst`, `frequency` (18), `sel` (2), `wren`, `qIn` (8), `qOut` (8) |
-| `phase_accumulator.vhd` | Junta o conversor de frequência, o somador, o registrador de fase e o truncador |
-| `frequency_translator.vhd` | Converte a frequência em Hz na FTW de 32 bits (multiplicação em ponto fixo) |
+| `DDS.qpf`, `DDS.qsf`, `DDS.sdc` | Projeto Quartus, pinagem e restrições de tempo |
+| `dds_pkg.vhd` | Constantes: larguras, Hz → FTW, instruções do JTAG, códigos das formas, zero do DAC |
+| `DDS.vhd` | Top-level: PLL, reset, controle pelo PC e núcleo, ligados aos pinos |
+| `reset_sync.vhd` | Entra em reset na hora e sai sincronizado com o clock (3 flip-flops) |
+| `jtag_interface.vhd` | IP do Virtual JTAG + `jtag_control` |
+| `jtag_control.vhd` | `vjtag_dr` + `cmd_sync` + `control_registers`, sem a IP |
+| `vjtag_dr.vhd` | DR de 18 bits (LSB primeiro), bypass no IR 00, comando no Update-DR |
+| `cmd_sync.vhd` | Passa o comando do tck para os 10 MHz (toggle + dado parado) |
+| `control_registers.vhd` | Decodifica o comando: frequência, `sel` e pulso de escrita na LUT |
+| `dds_core.vhd` | Acumulador de fase + LUT + registrador de saída |
+| `phase_accumulator.vhd` | Junta conversor de frequência, somador, registrador de fase e truncador |
+| `frequency_translator.vhd` | Converte frequência em Hz na FTW de 32 bits (multiplicação em ponto fixo) |
 | `word_adder.vhd` | Somador de 32 bits: FTW + fase atual |
 | `phase_register.vhd` | Registrador de fase de 32 bits, com reset assíncrono |
-| `truncator.vhd` | Seleciona os 10 bits mais significativos da fase (31..22) para endereçar a LUT |
-| `LUT.vhd` | Instancia as quatro memórias e o multiplexador de saída |
-| `out_mux.vhd` | Seleciona a forma de onda: `00` seno, `01` rampa, `10` sinc, `11` arbitrária |
+| `truncator.vhd` | Seleciona os 10 bits mais significativos da fase (31..22) |
+| `LUT.vhd` | As quatro memórias e o multiplexador de saída |
+| `out_mux.vhd` | Seleciona a forma: `00` seno, `01` rampa, `10` sinc, `11` arbitrária |
+| `output_register.vhd` | Amostra registrada para o DAC; no reset, código 128 (0 V) |
 | `sine_LUT`, `saw_LUT`, `sinc_LUT` (`.vhd/.qip/.cmp`) | ROMs 1024 × 8 (`altsyncram`), inicializadas pelos `.mif` |
-| `arbitrary_LUT` (`.vhd/.qip/.cmp`) | RAM 1024 × 8 para a forma de onda arbitrária |
+| `arbitrary_LUT` (`.vhd/.qip/.cmp`) | RAM 1024 × 8 de duas portas: escrita pelo PC, leitura pela fase; começa com o ECG |
 | `PLL` (`.vhd/.qip/.cmp/.ppf`) | ALTPLL: 50 MHz → 10 MHz |
 | `jtag.qsys`, `jtag/` | Virtual JTAG (Platform Designer), IR de 2 bits |
 | `lut/` | Tabelas `.mif` das formas de onda ([abaixo](#formas-de-onda-lut)) |
-| `sim/` | Testbench do top-level (`tb_DDS.vhd`, VHDL-2008) e script do GHDL ([Simulação](#simulação)) |
+| `testbenches/` | Um testbench por bloco, o script que roda todos e as figuras ([Testbenches](#testbenches)) |
 
 <details>
 <summary><b>Como a frequência vira FTW sem divisor</b> (<code>frequency_translator</code>)</summary>
@@ -96,8 +133,9 @@ P = f · K                                                  (18 + 33 = 51 bits)
 M = P >> 24                                                (32 bits)
 ```
 
-Para todas as entradas de 0 a 262 143 Hz o erro de `M` é menor que 1 LSB, ou seja, o erro de
-frequência fica abaixo de Δf ≈ 2,33 mHz. A GUI usa a mesma conta para mostrar a FTW esperada.
+Para todas as entradas de 0 a 262 143 Hz o erro de `M` é menor que 1 LSB (o maior é
+0,99986 LSB, em 2 752 Hz), ou seja, o erro de frequência fica abaixo de Δf ≈ 2,33 mHz. O
+`tb_frequency_translator` confere as 2¹⁸ entradas. A GUI usa a mesma conta para mostrar a FTW.
 
 </details>
 
@@ -128,7 +166,7 @@ Todas têm 1024 amostras de 8 bits em offset binary, com o zero do sinal no cód
 | `sine_1024x8.mif` | `round(128 + 127·sin(2πk/1024))` | ROM `sine_LUT` |
 | `triangle_1024x8.mif` | Rampa de subida e descida, em fase com o seno | ROM `saw_LUT` |
 | `sinc_1024x8.mif` | `round(128 + 127·sinc((k−512)/64))`, janela x ∈ [−8, 8) | ROM `sinc_LUT` |
-| `ecg_1024x8.mif` | ECG sintético estocástico (modelo ECGSYN) | Forma arbitrária, carregada pela GUI |
+| `ecg_1024x8.mif` | ECG sintético estocástico (modelo ECGSYN) | Conteúdo inicial da RAM `arbitrary_LUT` |
 
 <details>
 <summary><b>ECG sintético</b></summary>
@@ -151,18 +189,62 @@ TP para emendar sem descontinuidade. Assim, com **f = 1 Hz** no DDS, a saída é
 
 | IR | Instrução | DR (18 bits) |
 |---|---|---|
-| `00` | nenhuma | — |
+| `00` | nenhuma (bypass de 1 bit) | — |
 | `01` | frequência | f em Hz |
 | `10` | forma de onda | `sel` nos 2 bits de baixo |
 | `11` | escrita na LUT arbitrária | `endereço(9..0) & dado(7..0)` |
 
-O PC usa o `quartus_stp` (`device_virtual_ir_shift` / `device_virtual_dr_shift`). A
-[GUI](../GUI/README.md) faz isso por trás e documenta o lado do PC.
+O PC usa o `quartus_stp` (`device_virtual_ir_shift` / `device_virtual_dr_shift`); a
+[GUI](../GUI/README.md) faz isso por trás. No FPGA, o caminho tem três blocos:
 
-> [!NOTE]
-> O Virtual JTAG já está instanciado no top-level, mas o bloco de registradores que recebe
-> o DR ainda não foi feito. Por enquanto, frequência, `sel` e escrita na LUT são portas do
-> top-level (ver [Estado atual](#estado-atual)).
+1. **`vjtag_dr`** (domínio do tck): desloca o DR LSB primeiro durante o Shift-DR. No Update-DR,
+   guarda instrução e valor e troca o nível de `cmd_toggle`. No Capture-DR, carrega o último
+   valor escrito com a mesma instrução, para depuração por leitura.
+2. **`cmd_sync`**: sincroniza o toggle em 3 flip-flops no domínio de 10 MHz e copia o comando
+   quando ele muda. O comando fica parado até o próximo Update-DR, que leva mais de 22 ciclos de
+   tck (3,7 µs a 6 MHz); a travessia leva 0,4 µs.
+3. **`control_registers`**: aplica o comando. A escrita na LUT é um pulso de 1 clock na porta de
+   escrita da RAM, que é separada da porta de leitura: a forma arbitrária continua saindo
+   enquanto a LUT é reescrita.
+
+O LED verde `LEDG[1]` muda de estado a cada comando aceito, e `LEDG[0]` acende com o PLL
+travado.
+
+## Pinos da DE2-115
+
+| Porta | Pino | Sinal na placa | Padrão |
+|---|---|---|---|
+| `clk_50` | PIN_Y2 | CLOCK_50 | 3,3-V LVTTL |
+| `rst_n` | PIN_M23 | KEY[0] (apertado = reset) | 2,5 V |
+| `dac[0]` … `dac[7]` | PIN_AB21, Y17, AC21, Y16, AD21, AE16, AD15, AE15 | GPIO[2] … GPIO[9] (LSB … MSB), para J1 da placa analógica | 3,3-V LVTTL |
+| `dac_gnd` | PIN_AB22 | GPIO[0] em '0', referência de terra no cabo | 3,3-V LVTTL |
+| `led_locked` | PIN_E21 | LEDG[0] | 2,5 V |
+| `led_cmd` | PIN_E22 | LEDG[1] | 2,5 V |
+
+Os pinos do DAC e do `dac_gnd` são os mesmos da versão usada na bancada (TCCV1 do projeto
+anterior), então o cabo atual serve. Os 8 bits saem de registradores de I/O
+(`FAST_OUTPUT_REGISTER`) e mudam juntos.
+
+## Síntese
+
+Compilação completa no Quartus 18.1 Lite (outubro de 2026):
+
+| Recurso | Uso |
+|---|---|
+| Elementos lógicos | 378 de 114 480 (< 1 %) |
+| Registradores | 262 |
+| Bits de memória | 32 768 (as 4 memórias de 1024 × 8) |
+| Multiplicadores de 9 bits | 4 (a conversão Hz → FTW) |
+| PLL | 1 de 4 |
+| Pinos | 13 |
+
+| Clock | Fmax (85 °C) | Folga de setup | Folga de hold |
+|---|---|---|---|
+| 10 MHz (PLL) | 97,8 MHz | 90,0 ns | 0,30 ns |
+| tck do JTAG | 112,8 MHz | 33,2 ns | 0,40 ns |
+
+Nenhum caminho fica sem restrição. Os avisos que restam são esperados: portas internas da IP do
+Virtual JTAG sem uso, `dac_gnd` fixo em terra e a nota sobre interfaces de 3,3 V do Cyclone IV.
 
 ## Compilar e gravar
 
@@ -171,55 +253,112 @@ O PC usa o `quartus_stp` (`device_virtual_ir_shift` / `device_virtual_dr_shift`)
    no Platform Designer (*Generate HDL*, VHDL).
 2. Grave o `.sof` (`fpga/output_files/DDS.sof`) pelo Programmer (USB-Blaster, chave
    RUN/PROG da placa em **RUN**).
-3. Feche o Programmer antes de abrir a [GUI](../GUI/README.md): os dois disputam o cabo.
+3. A saída começa num seno de 1 kHz. Feche o Programmer antes de abrir a
+   [GUI](../GUI/README.md): os dois disputam o cabo.
 
-## Simulação
+## Testbenches
 
-`sim/tb_DDS.vhd` simula o top-level completo, com o PLL e as memórias pelos modelos
-`altera_mf` do Quartus, e confere o resultado sozinho:
+A pasta `testbenches/` tem um testbench auto-verificável por bloco, do menor ao top-level.
+Cada um compara o circuito com um modelo de referência e termina com `<nome>: OK`.
 
-- o PLL gera 10 MHz a partir do clock de 50 MHz;
-- o endereço da LUT avança f·1024/f<sub>clk</sub> posições por clock e dá a volta na frequência
-  pedida (1 kHz, 100 kHz e 262 143 Hz, tolerância de 0,1 %);
-- `qOut` segue a forma de onda escolhida por `sel`, comparada amostra a amostra com os
-  `.mif`, e a RAM arbitrária devolve o que foi escrito com `wren`.
+| Testbench | O que confere |
+|---|---|
+| `tb_frequency_translator` | As 2¹⁸ entradas: FTW = `(f·K) >> 24` e erro menor que 1 LSB do valor exato |
+| `tb_word_adder` | Soma de 32 bits com estouro, casos de borda e 10 000 pares aleatórios |
+| `tb_phase_register` | Carga só na borda de subida e reset assíncrono |
+| `tb_truncator` | Endereço = fase(31..22) |
+| `tb_phase_accumulator` | Endereço clock a clock contra o modelo, trocas de frequência sem salto de fase, 0 Hz |
+| `tb_out_mux` | Cada código de `sel` |
+| `tb_LUT` | Os 1024 endereços das 3 ROMs e da RAM contra os `.mif`, escrita na RAM durante a leitura |
+| `tb_output_register` | Código 128 no reset e carga na borda |
+| `tb_dds_core` | Cada amostra contra o modelo do DDS: 4 formas, trocas com o DDS rodando, escrita na RAM |
+| `tb_reset_sync` | Entrada em reset imediata e saída na 3ª borda |
+| `tb_vjtag_dr` | DR LSB primeiro, comando no Update-DR, leitura no Capture-DR, bypass |
+| `tb_cmd_sync` | 300 comandos de um clock de 6 MHz para 10 MHz: todos chegam, uma vez, na ordem |
+| `tb_control_registers` | Valores depois do reset, decodificação, pulso de escrita e IR 00 ignorado |
+| `tb_jtag_control` | Do DR do JTAG até os registradores, com 64 escritas na LUT |
+| `tb_system` | Do comando do PC até a amostra do DAC, incluindo o envio de uma LUT inteira |
+| `tb_DDS` | Top-level com PLL: 10 MHz, LEDs, seno de 1 kHz nos pinos e reset pelo botão |
+
+Nos testbenches, o modelo da IP do Virtual JTAG é substituído por procedimentos que geram os
+mesmos sinais (tck, IR, Capture/Shift/Update-DR), em `tb_utils_pkg.vhd`.
 
 ```bash
-sudo apt install ghdl     # uma vez
-fpga/sim/run_ghdl.sh      # ~3,5 min; termina com "tb_DDS: OK"
+sudo apt install ghdl                                    # uma vez
+fpga/testbenches/run_all.sh                              # todos (~2,5 min; o tb_DDS leva 1 min)
+fpga/testbenches/run_all.sh tb_dds_core tb_system        # só alguns
+WAVES=1 fpga/testbenches/run_all.sh tb_dds_core          # grava testbenches/waves/tb_dds_core.ghw (GTKWave)
 ```
 
-Na primeira execução o script compila a biblioteca `altera_mf` em `fpga/sim/work/`
-(o Quartus é procurado em `~/intelFPGA_lite/18.1/quartus` ou em `QUARTUS_ROOTDIR`).
-O testbench usa nomes externos do VHDL-2008 para observar o endereço interno `bOut`.
-O ModelSim-Altera 18.1 para Linux é 32-bit e precisa das bibliotecas i386 do sistema;
-por isso a simulação foi montada no GHDL.
+Na primeira execução o script compila a biblioteca `altera_mf` do Quartus em
+`testbenches/work/` (o Quartus é procurado em `~/intelFPGA_lite/18.1/quartus` ou em
+`QUARTUS_ROOTDIR`). O ModelSim-Altera 18.1 para Linux é 32-bit e precisa das bibliotecas i386
+do sistema; por isso a simulação foi montada no GHDL.
 
-Os códigos de um seno de 1 kHz simulados aqui também alimentam a
-[simulação analógica](../analog/README.md#simulação-no-ltspice): os PWL dos 8 bits em
-`analog/simulation/pwl/` saíram desta simulação.
+### Figuras
+
+`testbenches/gerar_figuras.py` roda os testbenches gravando só os sinais de interesse e desenha
+as figuras em [`testbenches/figuras/`](testbenches/figuras/), em PNG (300 dpi) e PDF
+(vetorial), na largura de 16 cm, sem título (a legenda vai no texto):
+
+```bash
+pip install numpy matplotlib
+python3 fpga/testbenches/gerar_figuras.py                # todas
+python3 fpga/testbenches/gerar_figuras.py --sem-simular  # só redesenha
+```
+
+<table>
+  <tr>
+    <td width="50%"><img src="testbenches/figuras/tb_dds_core_formas.png" alt="Saída do dds_core para as quatro formas e a troca de frequência"></td>
+    <td width="50%"><img src="testbenches/figuras/tb_vjtag_dr.png" alt="Diagrama de tempo de dois deslocamentos de DR no vjtag_dr"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><code>tb_dds_core_formas</code>: as quatro formas, troca de frequência sem salto de fase e a RAM reescrita</sub></td>
+    <td align="center"><sub><code>tb_vjtag_dr</code>: dois deslocamentos de DR e os comandos gerados no Update-DR</sub></td>
+  </tr>
+</table>
+
+| Figura | Conteúdo |
+|---|---|
+| `tb_frequency_translator` | FTW para as 2¹⁸ entradas e o erro de truncamento |
+| `tb_word_adder`, `tb_truncator`, `tb_out_mux` | Diagramas de tempo dos casos de borda |
+| `tb_phase_register`, `tb_output_register`, `tb_reset_sync` | Diagramas de tempo de carga e reset |
+| `tb_phase_accumulator` | Endereço da LUT em 1 kHz e nas trocas de frequência |
+| `tb_LUT_tabelas`, `tb_LUT_latencia` | O que cada memória devolve em cada endereço, e a latência de 2 clocks |
+| `tb_dds_core_formas`, `tb_dds_core_latencia` | Saída para cada forma, e a latência de 3 clocks depois do reset |
+| `tb_vjtag_dr`, `tb_cmd_sync`, `tb_control_registers`, `tb_jtag_control` | O caminho de um comando do JTAG até os registradores |
+| `tb_system_visao_geral`, `tb_system_detalhes` | A saída durante a sequência de comandos do PC e a LUT enviada |
+| `tb_DDS_pll`, `tb_DDS_saida` | Travamento do PLL e o seno de 1 kHz nos pinos do DAC |
 
 ## Estado atual
 
 - [x] Acumulador de fase de 32 bits com conversão Hz → FTW em ponto fixo
-- [x] PLL de 10 MHz a partir do clock de 50 MHz, clock de todo o caminho de dados
-- [x] ROMs de seno, rampa e sinc, RAM arbitrária e multiplexador de saída
-- [x] Virtual JTAG instanciado no top-level
-- [x] Testbench do top-level passando no GHDL
-- [ ] Bloco de registradores do JTAG (deslocamento do DR em `tck`, atualização no Update-DR e
-      sincronização para o domínio de 10 MHz)
-- [ ] Ligar frequência, `sel` e escrita da LUT arbitrária ao JTAG; hoje são portas do top-level,
-      e `tdo` e `ir_out` do Virtual JTAG ainda não têm fonte
-- [ ] Endereço de escrita da LUT arbitrária: hoje a RAM é escrita no endereço da fase; a escrita
-      pelo JTAG vai precisar de um multiplexador de endereço
-- [ ] Pinagem do DAC, do clock e do reset (o `DDS.qsf` ainda não tem atribuições de pinos) e
-      restrições de timing (`.sdc`)
-- [ ] Validação na placa, com medidas de frequência e espectro
+- [x] PLL de 10 MHz e reset sincronizado
+- [x] ROMs de seno, rampa e sinc, RAM arbitrária de duas portas e multiplexador de saída
+- [x] Controle pelo Virtual JTAG: DR, travessia de domínio de clock e registradores
+- [x] Pinagem da DE2-115 e restrições de tempo, com timing fechado no Quartus
+- [x] 16 testbenches passando no GHDL, com figuras
+- [ ] Validação na placa: controle pela GUI, medidas de frequência e espectro
 
 <details>
-<summary><b>Correções de ligação (outubro de 2026)</b>, confirmadas na síntese e na simulação</summary>
+<summary><b>Histórico de mudanças</b></summary>
 
 <br>
+
+**Controle pelo PC e encapsulamento (outubro de 2026)**
+
+- Bloco de registradores do JTAG (`vjtag_dr`, `cmd_sync`, `control_registers`), agrupado em
+  `jtag_control` e `jtag_interface`; frequência, forma e LUT deixaram de ser portas do top-level.
+- `arbitrary_LUT` virou RAM de duas portas (escrita pelo PC, leitura pela fase), começando com o
+  ECG; antes a RAM era escrita no endereço da fase.
+- `dds_core` reúne acumulador, LUT e o novo `output_register`; `reset_sync` sincroniza o reset.
+- `phase_register` passou a atualizar na borda de subida, como o resto do caminho de dados.
+- `dds_pkg` concentra as constantes; os blocos usam instanciação direta de entidades (a IP do
+  Virtual JTAG, que fica na biblioteca `jtag`, é instanciada como componente).
+- Pinos (os mesmos da versão de bancada), `DDS.sdc` e registradores de I/O para o DAC.
+- `fpga/sim/` virou `fpga/testbenches/`, com um testbench por bloco e as figuras.
+
+**Correções de ligação (outubro de 2026)**, confirmadas na síntese e na simulação
 
 - `truncator`: o endereço da LUT passou a ser `fase(31..22)`; antes eram os 10 bits menos
   significativos da fase.
@@ -228,9 +367,8 @@ Os códigos de um seno de 1 kHz simulados aqui também alimentam a
 - `LUT`: `sinc_LUT` ligada em `qsinc` (havia dois drivers em `qsaw`) e `out_mux` com mapeamento
   nomeado; antes `qsinc` ficava de fora e a saída `qout` sem conexão.
 - `DDS`: o PLL recebe a porta `clk` (antes um sinal sem fonte); o acumulador de fase roda em
-  `clk10MHz`, como a LUT e o cálculo da FTW; `sel` e `wren` viraram portas de entrada.
-- Na síntese, o Quartus removia as memórias e o PLL (0 bits de memória). Agora ficam as
-  4 memórias de 1024 × 8 e o PLL, e os avisos caíram de 90 para 10, todos do Virtual JTAG
-  ainda não ligado.
+  `clk10MHz`, como a LUT e o cálculo da FTW.
+- Na síntese, o Quartus removia as memórias e o PLL (0 bits de memória); depois da correção
+  ficaram as 4 memórias de 1024 × 8 e o PLL.
 
 </details>

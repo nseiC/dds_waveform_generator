@@ -1,75 +1,48 @@
+-- Conversão fase -> amplitude: três ROMs (seno, rampa, sinc), a RAM da forma arbitrária e o
+-- multiplexador de saída. Todas as memórias registram endereço e saída, então qOut
+-- corresponde ao endereço de 2 clocks antes.
+-- A RAM arbitrária é lida no endereço da fase e escrita no endereço que vem do PC
+-- (lut_waddr), sem interromper a leitura.
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use work.dds_pkg.all;
 
 entity LUT is
 	port(
-		addr 				: in unsigned (9 downto 0);
-		qOut 				: out std_logic_vector (7 downto 0);
-		qIn				: in std_logic_vector (7 downto 0);
-		clk, rst, wren	: in std_logic;
-		sel				: in std_logic_vector (1 downto 0)
+		clk			: in std_logic;
+		addr			: in unsigned (ADDR_WIDTH - 1 downto 0);
+		sel			: in std_logic_vector (1 downto 0);
+		lut_we		: in std_logic;
+		lut_waddr	: in unsigned (ADDR_WIDTH - 1 downto 0);
+		lut_wdata	: in std_logic_vector (DATA_WIDTH - 1 downto 0);
+		qOut			: out std_logic_vector (DATA_WIDTH - 1 downto 0)
 	);
 end entity;
 
 architecture behavior of LUT is
-	component sine_LUT IS
-		PORT
-		(
-			address		: IN STD_LOGIC_VECTOR (9 DOWNTO 0);
-			clock		: IN STD_LOGIC  := '1';
-			q		: OUT STD_LOGIC_VECTOR (7 DOWNTO 0)
-		);
-	end component;
-	
-	component sinc_LUT IS
-		PORT
-		(
-			address		: IN STD_LOGIC_VECTOR (9 DOWNTO 0);
-			clock		: IN STD_LOGIC  := '1';
-			q		: OUT STD_LOGIC_VECTOR (7 DOWNTO 0)
-		);
-	end component;
-	
-	component saw_LUT IS
-		PORT
-		(
-			address		: IN STD_LOGIC_VECTOR (9 DOWNTO 0);
-			clock		: IN STD_LOGIC  := '1';
-			q		: OUT STD_LOGIC_VECTOR (7 DOWNTO 0)
-		);
-	end component;
-	
-	component arbitrary_LUT IS
-		PORT
-		(
-			address		: IN STD_LOGIC_VECTOR (9 DOWNTO 0);
-			clock		: IN STD_LOGIC  := '1';
-			data		: IN STD_LOGIC_VECTOR (7 DOWNTO 0);
-			wren		: IN STD_LOGIC ;
-			q		: OUT STD_LOGIC_VECTOR (7 DOWNTO 0)
-		);
-	end component;
-	
-	component out_mux IS
-		PORT(
-			sel								: in std_logic_vector (1 downto 0); 
-			wren, rst						: in std_logic;
-			q_sine,q_saw,q_sinc,q_arb	: in std_logic_vector ( 7 downto 0);
-			qout								: out std_logic_vector ( 7 downto 0)
-		);
-	end component;
-	
-	signal qsine,qsaw,qsinc,qarb,qmux	: std_logic_vector (7 downto 0);
-	signal addr_casted						: std_logic_vector (9 downto 0);
-	begin
-	addr_casted <= std_logic_vector (addr);
-	sine	: sine_LUT port map (address => addr_casted, clock => clk, q => qsine);
-	saw	: saw_LUT  port map (address => addr_casted, clock => clk, q => qsaw);
-	sinc	: sinc_LUT port map (address => addr_casted, clock => clk, q => qsinc);
-	arb  : arbitrary_LUT port map (address => addr_casted, clock => clk, data => qIn, wren => wren, q => qarb);
-	mux	: out_mux  port map (sel => sel, wren => wren, rst => rst,
-									  q_sine => qsine, q_saw => qsaw, q_sinc => qsinc, q_arb => qarb,
-									  qout => qmux);
-	qOut <= qmux;
-end architecture; 
+	signal qsine, qsaw, qsinc, qarb	: std_logic_vector (DATA_WIDTH - 1 downto 0);
+	signal raddr, waddr					: std_logic_vector (ADDR_WIDTH - 1 downto 0);
+begin
+	raddr <= std_logic_vector(addr);
+	waddr <= std_logic_vector(lut_waddr);
+
+	sine : entity work.sine_LUT
+		port map (address => raddr, clock => clk, q => qsine);
+
+	saw : entity work.saw_LUT
+		port map (address => raddr, clock => clk, q => qsaw);
+
+	sinc : entity work.sinc_LUT
+		port map (address => raddr, clock => clk, q => qsinc);
+
+	arb : entity work.arbitrary_LUT
+		port map (clock => clk, data => lut_wdata, rdaddress => raddr, wraddress => waddr,
+					 wren => lut_we, q => qarb);
+
+	mux : entity work.out_mux
+		port map (sel => sel, q_sine => qsine, q_saw => qsaw, q_sinc => qsinc, q_arb => qarb,
+					 qout => qOut);
+
+end architecture;

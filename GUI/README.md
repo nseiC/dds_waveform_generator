@@ -14,8 +14,9 @@ hardware além do cabo de gravação da placa.
 - Tema escuro ou claro, nas cores do projeto
 
 > [!NOTE]
-> O lado do PC está pronto. No FPGA, o Virtual JTAG já está instanciado, mas o bloco de
-> registradores que aplica o DR ainda falta ([estado da parte digital](../fpga/README.md#estado-atual)).
+> Os dois lados do protocolo estão prontos. No FPGA, o caminho do JTAG até a saída do DAC passa
+> nos testbenches, inclusive o envio de uma LUT inteira (`tb_system`). Falta validar na placa
+> ([estado da parte digital](../fpga/README.md#estado-atual)).
 
 ## Começo rápido
 

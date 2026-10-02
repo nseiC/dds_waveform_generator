@@ -27,6 +27,9 @@ simulation/
 *.fft
 analog/simulation/*.log
 
+# GHDL: formas de onda gravadas com WAVES=1 (testbenches/run_all.sh)
+fpga/testbenches/waves/
+
 # ModelSim
 work/
 transcript

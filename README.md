@@ -119,8 +119,9 @@ $$
 
 <br>
 
-- **VHDL (GHDL):** `fpga/sim/run_ghdl.sh` simula o top-level com o PLL e as memórias e termina
-  com `tb_DDS: OK` ([detalhes](fpga/README.md#simulação)).
+- **VHDL (GHDL):** `fpga/testbenches/run_all.sh` roda os 16 testbenches, de cada bloco até o
+  top-level com o PLL, e `gerar_figuras.py` desenha as figuras de cada um
+  ([detalhes](fpga/README.md#testbenches)).
 - **Analógico (LTspice):** `analog/simulation/TCC.asc` simula o front-end com os códigos de um seno
   de 1 kHz vindos da simulação do VHDL ([detalhes](analog/README.md#simulação-no-ltspice)).
 - **No navegador:** a [roda de fase](https://nseic.github.io/dds_waveform_generator/jogo/) mostra o
@@ -135,23 +136,25 @@ $$
 
 | Pasta | Conteúdo |
 |---|---|
-| [`fpga/`](fpga/) | Projeto Quartus: fontes VHDL, IPs, tabelas `.mif` e simulação no GHDL |
+| [`fpga/`](fpga/) | Projeto Quartus: fontes VHDL, IPs, tabelas `.mif`, testbenches e as figuras deles |
 | [`analog/`](analog/) | Placa no Altium (`layout/`), simulação no LTspice (`simulation/`) e fotos (`figuras/`) |
 | [`GUI/`](GUI/) | Interface em Python e a biblioteca `dds_jtag` |
 | [`docs/`](docs/) | Logo, figuras, a roda de fase (`jogo/`) e o script que gera as figuras |
+| [`overleaf/`](overleaf/) | Texto do TCC em LaTeX, no modelo da COELE-CM (UTFPR Campo Mourão) do prof. Osmar Tormena Júnior |
 
 </details>
 
 ## Estado do projeto
 
-- [x] Núcleo DDS em VHDL (acumulador de fase, PLL, quatro LUTs) passando no testbench do GHDL
+- [x] Núcleo DDS em VHDL (acumulador de fase, PLL, quatro LUTs, saída registrada)
+- [x] Controle pelo Virtual JTAG no FPGA, ligando a GUI ao DDS
+- [x] Pinagem do DAC e restrições de tempo, com timing fechado no Quartus
+- [x] 16 testbenches no GHDL, do bloco ao top-level, com figuras para o texto
 - [x] Interface em Python com o protocolo do Virtual JTAG
 - [x] Placa analógica projetada, fabricada e medida na bancada
 - [x] Simulação do front-end analógico no LTspice
-- [ ] Bloco de registradores do Virtual JTAG no FPGA, ligando a GUI ao DDS
-- [ ] Pinagem do DAC e restrições de timing (`.sdc`) no Quartus
 - [ ] Ordem dos bits do DAC na simulação do LTspice ([ver aviso](analog/README.md#resultados))
-- [ ] Validação completa na placa, com medidas de frequência e espectro
+- [ ] Validação completa na placa: controle pela GUI, medidas de frequência e espectro
 
 O detalhe de cada parte está nos READMEs do [FPGA](fpga/README.md#estado-atual), da
 [placa analógica](analog/README.md) e da [interface](GUI/README.md).

@@ -115,7 +115,7 @@ saída é só o seguidor.
 ## Simulação no LTspice
 
 A pasta `simulation/` tem o front-end completo no LTspice 26, alimentado pelos códigos que a
-[simulação do VHDL](../fpga/README.md#simulação) produziu para um seno de 1 kHz.
+[simulação do VHDL](../fpga/README.md#testbenches) produziu para um seno de 1 kHz.
 
 | Arquivo | Conteúdo |
 |---|---|

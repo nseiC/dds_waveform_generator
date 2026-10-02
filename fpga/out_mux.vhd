@@ -1,22 +1,22 @@
+-- Seleciona a forma de onda que vai para o DAC: 00 seno, 01 rampa, 10 sinc, 11 arbitrária.
+
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.numeric_std.all;
+use work.dds_pkg.all;
 
-entity out_mux IS
-		PORT(
-			sel								: in std_logic_vector ( 1 downto 0);
-			wren, rst						: in std_logic;
-			q_sine,q_saw,q_sinc,q_arb	: in std_logic_vector ( 7 downto 0);
-			qout								: out std_logic_vector ( 7 downto 0)
-		);
+entity out_mux is
+	port(
+		sel									: in std_logic_vector (1 downto 0);
+		q_sine, q_saw, q_sinc, q_arb	: in std_logic_vector (DATA_WIDTH - 1 downto 0);
+		qout									: out std_logic_vector (DATA_WIDTH - 1 downto 0)
+	);
 end entity;
 
 architecture behavior of out_mux is
-	begin
+begin
 	with sel select
-	qout <= q_sine when "00",
-	        q_saw  when "01",
-	        q_sinc when "10",
-	        q_arb  when "11",
-	        (others => '0') when others;
+	qout <= q_sine when SEL_SINE,
+	        q_saw  when SEL_SAW,
+	        q_sinc when SEL_SINC,
+	        q_arb  when others;
 end architecture;
