@@ -1,36 +1,35 @@
 \chapter{Introdução}
 
-Discentes do curso de Engenharia Eletrônica da \ac{utfpr} devem, ao final de sua formação, entregar um \ac{tcc}. O \ac{tcc} consiste em um trabalho acadêmico que coroa toda a trajetória discente durante a graduação e, segundo as \ac{dcn} de Engenharia, é parte fundamental da formação do profissional engenheiro \cite{mec2021}.
+Geradores de sinais estão entre os instrumentos mais usados em um laboratório de eletrônica: alimentam circuitos sob teste com senoides, rampas e pulsos de frequência e amplitude conhecidas. Os geradores de funções e de formas de onda arbitrárias atuais são, em sua maioria, digitais. Em vez de um oscilador analógico, eles calculam as amostras do sinal e as convertem em tensão por meio de um \ac{dac}.
 
-A escrita de uma monografia como \ac{tcc} é um momento desafiador no ciclo formativo da ampla maioria dos acadêmicos. Uma verdadeira rede de demandas, por vezes contraditórias, se estabelece: o discente deve escolher um tema que seja de seu interesse; o discente deve escolher como seu orientador um docente do \ac{daeln}, com quem tenha bom trânsito e que possua competência na área --- nem sempre possível, ou até concorrente à primeira demanda; finalmente, o discente deve produzir seu \ac{tcc} conforme as normas técnicas da \ac{abnt}, expandidas pela \ac{utfpr} \cites{cogep2021,prograd2021}.
+A técnica que viabiliza esses instrumentos é a \ac{dds}, descrita por \textcite{tierney1971}. Um acumulador de fase soma, a cada ciclo de clock, um valor constante chamado palavra de sintonia; a fase acumulada endereça uma tabela que contém um período da forma de onda; e o \ac{dac} converte as amostras lidas em um sinal analógico, que um filtro passa-baixas suaviza. A frequência de saída é proporcional à palavra de sintonia, o que dá à \ac{dds} resolução de frequência muito fina, troca de frequência sem descontinuidade de fase e formas de onda definidas apenas pelo conteúdo de uma tabela \cites{ad1999,kester2008}.
 
-Adicionalmente, a \ac{coele}, através de seu Colegiado de Curso, também requer o cumprimento de Normas Complementares de \ac{tcc}. Isso é feito para trazer uniformidade ao trabalho de orientação dos docentes do \ac{daeln} e também para manter a sanidade do \ac{pratcc}. Finalmente, e não menos importante, isso também facilita o trabalho de autoria dos discentes \cite{coele2023}.
+Os \acp{fpga} são adequados para implementar a \ac{dds}: oferecem memória interna para as tabelas, multiplicadores dedicados, \acp{pll} para gerar o clock e lógica suficiente para acrescentar interfaces de controle. O curso de Engenharia Eletrônica da \ac{utfpr} dispõe da placa de desenvolvimento DE2-115, com um \ac{fpga} Cyclone IV E, que reúne esses recursos \cite{terasic2010}.
 
-Já há muito se extinguiu a prática de depositar uma cópia física da monografia junto à biblioteca institucional. A praxe atual é o depósito eletrônico da monografia, no formato \ac{pdf}. Nos termos da \citetitle{prograd2021}, o depósito no \ac{riut} deve ser feito \emph{exclusivamente} no formato \ac{pdfa} \cite{prograd2021}.
+Este trabalho apresenta o desenvolvimento de um gerador de formas de onda por \ac{dds} completo, do código em \ac{vhdl} ao conector de saída. O núcleo digital roda no \ac{fpga} da DE2-115 e é controlado pelo computador através do próprio cabo de gravação da placa, usando o recurso Virtual \ac{jtag} da Intel. Uma placa analógica própria converte as amostras em tensão, com um \ac{dac} de 8~bits, um filtro de reconstrução e ajuste de amplitude. Uma interface gráfica em Python permite escolher a frequência, a forma de onda e o conteúdo de uma tabela arbitrária.
 
-Processadores de texto são ferramentas úteis e versáteis cujo uso se tornou ubíquo após a revolução da editoração digital, ocorrida entre a década de 1970 e 1980. Dentre suas variantes comerciais e de código"-livre, a grande maioria dos acadêmicos desenvolve alguma competência em seu uso, durante seu tempo na \ac{utfpr} --- os docentes do \ac{daeln} garantem isso com a constante demanda de relatórios técnicos das atividades semanais de laboratório. Infelizmente, a experiência mostra que a diagramação de um trabalho com dezenas de páginas, contendo: figuras, tabelas, equações, referências cruzadas, etc.; ao mesmo tempo que devem ser atendidas regras específicas de formatação, não tem nos processadores de texto a ferramenta ideal para os autores.
-
-O \TeX\ foi criado especificamente para prover aos autores as ferramentas mais refinadas de tipografia. Seu uso é extremamente difundido na academia e na indústria, especialmente em produções onde texto e equações matemáticas seguem \enquote{de mãos dadas} \cite{Knuth1986a}. O \LaTeX\ dá um passo adiante: autores deveriam se preocupar apenas com o conteúdo e deixar que um sistema especializado (no caso, o próprio \LaTeX) cuide da tipografia do documento. Se corretamente utilizado, o \LaTeX\ isola o autor da apresentação do conteúdo \cite{Lamport1994}.
-
-Os capítulos seguintes estão organizados como: uma revisão da literatura sobre \LaTeX\ e afins, normas \ac{abnt} e regulamentos institucionais; a metodologia explica a estrutura do presente modelo de \ac{tcc}; os resultados e discussões acerca dos resultados são apresentados; finalmente, as conclusões são argumentadas.
+Os capítulos seguintes estão organizados da seguinte forma: o Capítulo~\ref{cap:teoria} apresenta a fundamentação teórica da \ac{dds}, dos \acp{fpga} e dos circuitos analógicos de saída; o Capítulo~\ref{cap:metodologia} descreve o projeto do sistema, do núcleo digital, da verificação por simulação, da interface com o usuário e da placa analógica; o Capítulo~\ref{cap:resultados} apresenta e discute os resultados de síntese, de simulação e de bancada; e o Capítulo~\ref{cap:conclusao} reúne as conclusões e as propostas de trabalhos futuros.
 
 \section{Objetivos}
 
-O objetivo principal deste trabalho é prover uma forma simples para os acadêmicos do curso de Bacharelado em Engenharia Eletrônica da \ac{utfpr} produzirem suas monografias do \ac{tcc}, conforme as normas \ac{abnt} e diretivas institucionais.
+O objetivo principal deste trabalho é desenvolver um gerador de formas de onda por síntese digital direta, implementado em \ac{fpga} e controlado por computador, capaz de gerar senoides, rampas, funções sinc e formas arbitrárias com frequência de 0 a 262\,143~Hz e resolução de 2,33~mHz.
 
 Os objetivos específicos podem ser discriminados como:
 \begin{itemize}
-	\item Prover uma classe específica que abstraia dos autores as tecnicalidades da formatação e diagramação de um trabalho acadêmico no \LaTeX;
-	\item Prover um modelo funcional que os acadêmicos possam usar como base para a escrita de suas próprias monografias;
-	\item Prover um formato pré"-compilado da classe, permitindo que os acadêmicos usem a plataforma Overleaf (\url{www.overleaf.com}) sem preocupações com o tempo de compilação, ou a aquisição de uma licença.
+	\item Implementar em \ac{vhdl} um núcleo \ac{dds} com acumulador de fase de 32~bits, tabelas de 1024~amostras de 8~bits e conversão da frequência em hertz para a palavra de sintonia sem o uso de divisores;
+	\item Implementar o controle pelo computador através do Virtual \ac{jtag}, incluindo a passagem segura dos comandos entre domínios de clock e a escrita da forma arbitrária com o gerador em operação;
+	\item Organizar o projeto digital em blocos encapsulados, cada um com interface bem definida, e verificar cada bloco por simulação com \eng{testbenches} auto-verificáveis;
+	\item Projetar a placa analógica de saída, com \ac{dac}, conversão corrente-tensão, filtro de reconstrução e ajuste de amplitude, e avaliá-la por simulação SPICE;
+	\item Desenvolver uma interface gráfica para configurar a frequência, a forma de onda e a tabela arbitrária;
+	\item Validar o sistema completo em bancada.
 \end{itemize}
 
 \section{Justificativa}
 
-Apesar de já existirem (em abundância) alternativas para produção de trabalhos acadêmicos conforme as normas \ac{abnt}, o presente esforço se justifica sobre os seguintes critérios:
+O presente trabalho se justifica pelos seguintes critérios:
 \begin{description}
-	\item[Simplicidade] --- a generalidade de modelos existentes dificulta seu uso pelos autores e manutenção pelos proponentes. Isso impõe uma barreira para adoção da ferramenta pelos próprios autores a quem ela mais deveria beneficiar. O presente modelo implementa um conjunto mínimo de estruturas para criação de um documento corretamente formatado;
-	\item[Rapidez] --- a maioria dos novos autores do \LaTeX\ têm ansiedade em ver a cópia tão logo escrevam uma palavra adicional. Os tempos de compilação são baixos, em termos gerais, mas dificilmente se obtém a saída em tempo real. Isso é ainda mais importante em plataformas \eng{online}, como o Overleaf;
-	\item[Necessidade] --- nem todos os docentes do \ac{daeln} são proficientes no \LaTeX. A falta de suporte do orientador é um fator determinante na escolha da plataforma de escrita do orientado. A presente classe e modelo almejam a desmistificação do \LaTeX, tanto para discentes quanto para docentes.
+	\item[Didática] --- em um gerador comercial, o funcionamento interno fica oculto. No sistema desenvolvido, cada etapa da \ac{dds} (acumulação de fase, truncamento, quantização, conversão e reconstrução) pode ser observada, medida e modificada, o que o torna útil para o ensino de processamento digital de sinais e de conversão de dados;
+	\item[Flexibilidade] --- como a forma de onda é apenas o conteúdo de uma tabela, o gerador pode reproduzir sinais que um gerador de funções comum não oferece, como o eletrocardiograma sintético usado neste trabalho para testar equipamentos biomédicos;
+	\item[Aproveitamento de recursos] --- o sistema usa a placa DE2-115, já disponível no curso, e o controle pelo computador dispensa qualquer hardware além do cabo de gravação. A placa analógica usa componentes comuns, como o \ac{dac} DAC0800 e o amplificador operacional TL074;
+	\item[Integração] --- o trabalho reúne projeto digital, projeto analógico, desenvolvimento de software e verificação, competências distribuídas ao longo da formação em Engenharia Eletrônica.
 \end{description}
-

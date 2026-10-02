@@ -1,13 +1,19 @@
-\chapter{Conclusão}
+\chapter{Conclusão}\label{cap:conclusao}
 
-O presente trabalho implementa corretamente as normas \ac{abnt} e regulamentos institucionais da \ac{utfpr} para a elaboração de \ac{tcc} no curso de Engenharia Eletrônica. A classe \texttt{coele-cm.cls} é pequena o bastante para promover um simples esforço de manutenção, na eventualidade de alteração das normas.
+Este trabalho desenvolveu um gerador de formas de onda por síntese digital direta, com núcleo em \ac{vhdl} no \ac{fpga} da placa DE2-115, controle pelo computador através do Virtual \ac{jtag}, placa analógica própria e interface gráfica em Python. O gerador produz senoides, rampas, funções sinc e formas arbitrárias de 0 a 262\,143~Hz, com resolução de 2,33~mHz, e dispensa qualquer hardware de comunicação além do cabo de gravação da placa.
 
-Experimentos feitos pela comunidade demonstram que muito do tempo de produção de um \ac{pdf} pelo \pdftex\ é gasto na biblioteca \texttt{zlib}, responsável pela compressão dos objetos no \eng{stream} de dados dentro do contêiner \ac{pdf}. Diretivas do \pdftex\ podem ser exploradas para tentar trazer o tempo de compilação para um valor mais baixo, ao custo de um \ac{pdf} maior. Há também de se averiguar a conformidade desse resultado com o padrão \ac{pdfa}.
+O projeto digital foi organizado em blocos encapsulados, com uma entidade por função e um pacote único de constantes. Essa organização permitiu verificar cada bloco isoladamente: os 16 \eng{testbenches} auto-verificáveis, que vão da conversão de frequência à entidade do topo, terminaram sem erros. A separação entre o \ac{ip} do Virtual \ac{jtag} e a lógica de controle permitiu simular o caminho completo, do comando do computador até a amostra no \ac{dac}, que de outra forma só poderia ser verificado na placa. A conversão de frequência por multiplicação em ponto fixo, sem divisor, manteve o erro abaixo de 1~\ac{lsb} da palavra de sintonia em toda a faixa, e a travessia dos comandos entre os domínios de clock, feita com um único bit sincronizado, entregou todos os comandos testados sem perda nem repetição.
 
-De toda forma, identifica"-se facilmente um \eng{workaround} do problema de compilação no Overleaf: inserindo a diretiva \verb|\pdfcompresslevel=0| após o comando \verb|\documentclass| no arquivo \texttt{main.tex} resultou em um tempo de re"-compilação abaixo de 1~s na plataforma local (pelo menos 7 vezes mais rápida). O \ac{pdf} resultante ficou com 905~kilobytes, comparado aos 544~kilobytes da configuração padrão. No Overleaf, o uso dessa diretiva resultou em um tempo de compilação de 18,5~s (uma melhoria de quase 10\%), enquanto o tempo de re"-compilação ficou em 7,5~s (uma melhoria de 15\%). O Overleaf não documenta se faz alguma mudança no valor \eng{default} do \verb|\pdfcompresslevel| e o tamanho do seu \ac{pdf} produzido, de 551 kylobytes é apenas 1\% maior que o local, não sendo um indicativo explícito para quaisquer conclusões.
+O projeto ocupa menos de 1\% dos elementos lógicos do \ac{fpga} e opera com folga de tempo de dez vezes no clock de 10~MHz. A simulação numérica do espectro confirmou que, com tabela de 1024 posições, o maior espúrio de truncamento fica em cerca de \(-60\)~dBc. Assim, o desempenho espectral é limitado principalmente pela resolução de 8~bits do DAC0800.
 
-Além do nível de compressão no \ac{pdf}, há outras opções que serão averiguadas para otimizar a classe: passar o carregamento e utilização do \texttt{microtype} como uma opção da classe, conferindo flexibilidade aos autores; compilar a classe como um formato \LaTeX, reduzindo o tempo total de compilação apenas ao trabalho e compor as páginas do \ac{pdf}.
+\pendente{Completar com os resultados dos ensaios em bancada com o código final.}
 
-Para uma próxima revisão, um estudo mais detalhado da documentação do \texttt{latexmk} pode trazer os tempos de compilação para instalações locais para valores abaixo do tempo observado no Overleaf, conforme ocorre com os tempos de re"-compilação.
-
-Finalmente, também como um trabalho futuro, re"-escrever a classe como uma fonte documentada do \LaTeX\ (um arquivo \enquote{.dtx}). Isso permitirá uma melhor capacidade de expandir e manter a classe, pela documentação pormenorizada das linhas de código.
+Como trabalhos futuros, propõem-se:
+\begin{itemize}
+	\item realizar os ensaios em bancada com o código final, medindo a frequência ao longo da faixa e o espectro da saída, para comparar o maior espúrio com o previsto;
+	\item corrigir a ordem dos bits na simulação SPICE da placa analógica e comparar a forma de onda simulada com a medida;
+	\item substituir o DAC0800 por um conversor de maior resolução e menor tempo de acomodação, aproveitando a margem de tempo do \ac{fpga} para elevar o clock e a frequência máxima;
+	\item usar um filtro de reconstrução de ordem mais alta, para atenuar mais as imagens com a mesma banda passante;
+	\item explorar a simetria do seno para reduzir a tabela, liberando memória para tabelas maiores ou para mais formas de onda;
+	\item acrescentar modulações (amplitude, frequência e varredura) e um segundo canal com defasagem controlada.
+\end{itemize}

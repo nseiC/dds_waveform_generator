@@ -1,105 +1,200 @@
-\chapter{Metodologia}
+\chapter{Metodologia}\label{cap:metodologia}
 
-Este capítulo está organizado em duas seções: instalação do TeX Live e \eng{download} do modelo em uma pasta de trabalho, ou alternativamente, o uso do modelo no Overleaf; e as principais dicas para começar a escrever usando o \LaTeX.
+Este capítulo descreve o projeto do gerador. Primeiro, apresenta a visão geral do sistema e suas especificações; em seguida, o projeto do núcleo digital, do controle pelo computador, da verificação por simulação, da interface com o usuário e da placa analógica. Todos os arquivos do projeto (código \ac{vhdl}, \eng{testbenches}, interface, projeto da placa e simulações) estão disponíveis no repositório do trabalho \cite{seifert2026}; a organização do repositório é descrita no Apêndice~\ref{ap:repositorio}.
 
-\section{Instalação local}
+\section{Visão geral do sistema}
 
-O TeX Live pode ser obtido em \url{www.tug.org}, onde a versão 2024 já está disponível. Uma instalação completa do TeX Live ocupa vários gigabytes e é absolutamente desnecessária. Sua instalação é organizada, de forma mais macroscópica, em \enquote{esquemas}. A instalação do \texttt{scheme"-basic} inclui duas \enquote{coleções}: \texttt{collection"-basic} e \texttt{collection"-latex}.
+O sistema tem três partes, mostradas na Figura~\ref{fig:sistema}. No computador, uma interface gráfica em Python envia os comandos através do programa \cod{quartus\_stp} e do USB-Blaster da DE2-115. No \ac{fpga}, o bloco de controle recebe os comandos pelo Virtual \ac{jtag} e configura o núcleo \ac{dds}, que entrega uma amostra de 8~bits a cada ciclo do clock de 10~MHz, gerado por um \ac{pll} a partir do oscilador de 50~MHz da placa. As amostras saem pelo conector de expansão da placa para a placa analógica, onde o DAC0800 as converte em corrente e os amplificadores operacionais as convertem em tensão, filtram e ajustam a amplitude.
 
-A \enquote{coleção básica} compreende 40 pacotes básicos do \TeX. Dentre eles, de fundamental importância para a presente demanda é o \pdftex. Já a \enquote{coleção \LaTeX} compreende outros 58 pacotes. Além do \LaTeX\ propriamente dito, essa coleção também traz, dentre outros, o pacote \babel.
+\begin{figure}
+	\caption{Diagrama de blocos do sistema.}
+	\label{fig:sistema}
+	\includegraphics[width=\textwidth]{./figuras/sistema}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
 
-Outros 20 pacotes adicionais são necessários na implementação da classe deste modelo, são eles:
-\texttt{acro} (lista de acrônimos);
-\texttt{babel-portuges} (suporte do babel para português);
-\texttt{biber} (sucessor do bibtex para o biblatex);
-\texttt{biblatex} (bibliografias no \LaTeX);
-\texttt{biblatex-abnt} (normas \ac{abnt} para citações e referências);
-\texttt{booktabs} (tabelas com melhor formatação\footnote{De acordo com \cite{ibge1993}, conforme recomendado pelas normas \ac{abnt}.});
-\texttt{csquotes} (aspas inteligentes\footnote{Recomendado pelo \texttt{biblatex}.});
-\texttt{etoolbox} (ferramentas do e-\TeX para \LaTeX);
-\texttt{everyshi};
-\texttt{hyphen-portuguese} (hifenização em português);
-\texttt{latexmk} (automação do \LaTeX);
-\texttt{lm} (fontes Latin Modern);
-\memoir\ (classe \memoir);
-\texttt{microtype} (ajustes tipográficos);
-\texttt{pdfx} (suporte para produção de \ac{pdfa});
-\texttt{textcase} (controle de capitalização do texto);
-\texttt{translations} (Internacionalização dos pacotes para \LaTeXe);
-\texttt{xcolor} (Extensão das cores do \LaTeX\footnote{Dependência do \texttt{pdfx}.});
-\texttt{xmpincl} (inclusão de metadados no \ac{pdfa});
-\texttt{xpatch} (extensão do \texttt{etoolbox}).
+\section{Especificações}
 
-Esses pacotes podem ser instalados individualmente. Para simples referência, isso pode ser feito através dos comandos:
-\begin{verbatim}
-tlmgr install acro babel-portuges biber biblatex biblatex-abnt booktabs
-	csquotes etoolbox everyshi hyphen-portuguese latexmk lm memoir microtype
-	pdfx textcase translations xcolor xmpincl xpatch
-texhash
-tlmgr path add
-\end{verbatim}
-Resultado é uma instalação plenamente capaz do TeX Live, ocupando apenas\footnote{Este valor pode ser dependente do sistema operacional.}\footnote{Durante a produção da Tabela~\ref{tab:time}, foi necessário instalar um pacote adicional, o \texttt{multirow}, que adicionou 9~kylobytes à instalação.} 283~megabytes!
+A Tabela~\ref{tab:especificacoes} reúne os parâmetros do gerador. A frequência de clock de 10~MHz foi escolhida pelo tempo de acomodação típico do DAC0800, de 100~ns \cite{ti2013}: com um clock mais rápido, as amostras mudariam antes de o conversor se acomodar. O acumulador de 32~bits dá a resolução de 2,33~mHz da Equação~(\ref{eq:resolucao}). A tabela de 1024~amostras (\(P = 10\)) limita os espúrios de truncamento a cerca de \(-60\)~dBc, valor próximo ao limite de cerca de 50~dB imposto pela quantização em 8~bits, conforme as Equações~(\ref{eq:snr}) e (\ref{eq:sfdr}).
 
-Dentre esses pacotes, apenas dois não são \emph{estritamente} necessários para o cumprimento das normas \ac{abnt} e regimentos da \ac{utfpr}: o \texttt{microtype} e o \texttt{latexmk}. O racional para sua adição ao modelo é justificado por:
-\begin{description}
-	\item[\texttt{microtype}] --- ajuste sofisticado de espaçamento tipográfico para o \pdftex, resultando em menor número de hifenizações no corpo do texto e de \eng{bad boxes}\footnote{O \LaTeX\ tenta produzir texto justificado com espaçamento adequado entre as palavras. Por vezes o algoritmo falha, produzindo muito espaçamento entre as palavras ou fazendo o texto adentrar a margem.};
-	\item[\texttt{latexmk}] --- o \pdftex e \texttt{biber} podem precisar ser executados múltiplas vezes para resolver todas as referências internas e produzir uma cópia final do documento processado. O \texttt{latexmk} é um \eng{script} Perl especializado que automatiza esse processo.
-\end{description}
+A frequência é pedida pelo computador como um inteiro em hertz, de 18~bits, que é a largura do registrador de dados do protocolo (Seção~\ref{sec:controle}). A frequência máxima, de 262\,143~Hz, fica muito abaixo do limite de Nyquist de 5~MHz e garante pelo menos 38 amostras por período.
 
-A usabilidade proporcionada pelo \texttt{latexmk} custa apenas 525~kilobytes, sendo um opcional completamente razoável. Já a adição do \texttt{microtype} não se mede no espaço ocupado (apenas~464 kilobytes), mas sim no seu impacto no tempo de compilação, como será visto no capítulo~\ref{cap:resultados}.
+\begin{table}
+	\caption{Especificações do gerador.}
+	\label{tab:especificacoes}
+	\begin{tabular}{l l}\toprule
+		Parâmetro & Valor\\\midrule
+		Clock do \ac{dds} (\(f_{clk}\)) & 10~MHz, gerado por \ac{pll} a partir de 50~MHz\\
+		Acumulador de fase (\(N\)) & 32~bits\\
+		Resolução de frequência (\(\Delta f\)) & 2,33~mHz\\
+		Endereço da tabela (\(P\)) & 10~bits (1024 amostras por período)\\
+		Amostra e \ac{dac} (\(D\)) & 8~bits, binário deslocado (zero em 128)\\
+		Faixa de frequência & 0 a 262\,143~Hz, inteiro em hertz\\
+		Formas de onda & seno, rampa, sinc e arbitrária\\
+		Forma inicial da tabela arbitrária & eletrocardiograma sintético\\
+		Configuração após o \eng{reset} & seno de 1~kHz\\
+		Controle & computador, via Virtual \ac{jtag} e USB-Blaster\\\bottomrule
+	\end{tabular}
+	\legend{Fonte~---~Autoria própria.}
+\end{table}
 
-\section{Overleaf}
+\section{Projeto do núcleo digital}
 
-Conforme apontado pela seção anterior, a instalação do TeX Live está longe de ser um fator crítico para a utilização do \LaTeX\ na escrita do \ac{tcc}. No entanto, há uma razão legítima para o uso do Overleaf: ele permite a colaboração simultânea de múltiplos autores. Isso pode ocorrer, especialmente, entre o orientado e o orientador, com correções podendo ser apontadas em tempo real.
+\subsection{Organização hierárquica}
 
-Infelizmente a versão gratuita do Overleaf já não oferece o serviço de versionamento do documento, onde o autor poderia congelar versões do documento como um \eng{backup}, antes de uma mudança significativa na estrutura do documento, permitindo um simples \eng{rollback} no caso de resultados insatisfatórios.
+O projeto digital foi organizado em blocos encapsulados: cada função fica em uma entidade \ac{vhdl} própria, com portas bem definidas, e as entidades de nível mais alto apenas instanciam e ligam as de nível mais baixo. A entidade do topo, \cod{DDS}, não contém lógica: liga o \ac{pll}, o sincronizador de \eng{reset}, o controle pelo computador e o núcleo \ac{dds} aos pinos da placa. A Figura~\ref{fig:hierarquia} mostra a hierarquia completa.
 
-De toda forma, o autor que deseje iniciar seu \ac{tcc} no Overleaf basta acessar o sítio \url{www.overleaf.com}, criar sua conta ou inserir suas credenciais de acesso e iniciar um novo projeto.
+As constantes compartilhadas, como as larguras do caminho de dados, os códigos das instruções do protocolo e os códigos das formas de onda, ficam em um único pacote, \cod{dds\_pkg}. Assim, cada valor é definido em um único lugar, e os blocos e os \eng{testbenches} usam as mesmas definições.
 
-\section{Usando o \LaTeX}
+\begin{figure}
+	\caption{Hierarquia das entidades \acs{vhdl} do projeto. Os blocos em cinza são \acsp{ip} gerados pelas ferramentas da Intel.}
+	\label{fig:hierarquia}
+	\includegraphics[width=\textwidth]{./figuras/hierarquia}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
 
-O modelo completo (incluindo o presente conteúdo) está disponível em \url{https://github.com/osmartormena/coele-cm}. De lá é possível fazer o \eng{download} do projeto completo em um arquivo \enquote{.zip}, ou, para os familiares com o GitHub, clonar o repositório. A partir daí, é possível seguir dois caminhos distintos:
+\subsection{Acumulador de fase e conversão de frequência}
+
+O acumulador de fase (\cod{phase\_accumulator}) é composto por quatro blocos: o conversor de frequência (\cod{frequency\_translator}), o somador de 32~bits (\cod{word\_adder}), o registrador de fase (\cod{phase\_register}), que atualiza na borda de subida do clock e tem \eng{reset} assíncrono, e o truncador (\cod{truncator}), que entrega os 10~bits mais significativos da fase como endereço da tabela.
+
+Pela Equação~(\ref{eq:fout}), a palavra de sintonia para uma frequência \(f\) é \(M = f \cdot 2^{32}/f_{clk}\), o que exigiria uma divisão. Como \(f_{clk}\) é fixo, a divisão foi substituída por uma multiplicação por uma constante em ponto fixo, com 24~bits fracionários:
+\begin{equation}\label{eq:ftw}
+	K = \operatorname{round}\!\left(\frac{2^{56}}{f_{clk}}\right) = 7\,205\,759\,404, \qquad M = \left\lfloor \frac{f \cdot K}{2^{24}} \right\rfloor.
+\end{equation}
+O produto de \(f\) (18~bits) por \(K\) (33~bits) tem 51~bits, e o deslocamento de 24~bits para a direita é apenas a escolha dos fios de saída. Como \(K\) é ligeiramente maior que o valor exato, o erro de \(M\) fica abaixo de 1~\ac{lsb} para toda a faixa de entrada, o que corresponde a um erro de frequência menor que \(\Delta f\). Na síntese, a multiplicação ocupa quatro multiplicadores de \(9 \times 9\)~bits do \ac{fpga}.
+
+\subsection{Tabelas de forma de onda}
+
+A conversão de fase em amplitude (\cod{LUT}) reúne quatro memórias de \(1024 \times 8\)~bits, implementadas pelo \ac{ip} \cod{altsyncram} nos blocos M9K, e um multiplexador (\cod{out\_mux}) controlado pelo sinal \cod{sel}. Três delas são \acp{rom} inicializadas por arquivos \ac{mif}, gerados conforme a Equação~(\ref{eq:lut_seno}):
 \begin{itemize}
-	\item Quem for trabalhar com uma instalação local do TeX Live, pode expandir o arquivo \enquote{.zip} na pasta onde vai manter seus arquivos de \ac{tcc};
-	\item Quem for trabalhar no Overleaf, possui duas opções:
-		\begin{itemize}
-			\item Fazer o \eng{upload} manual do projeto no Overleaf;
-			\item Abrir o projeto a partir de seu clone, na sua própria conta no GitHub.
-		\end{itemize}
+	\item seno (\cod{sel} = \cod{00}): \(\operatorname{round}(128 + 127\sin(2\pi n/1024))\);
+	\item rampa (\cod{sel} = \cod{01}): subida e descida linear, em fase com o seno;
+	\item sinc (\cod{sel} = \cod{10}): \(\operatorname{round}(128 + 127\,\mathrm{sinc}((n-512)/64))\), com o argumento entre \(-8\) e 8.
 \end{itemize}
 
-Uma vez os arquivos fonte todos em seu devido lugar, os autores têm uma segunda escolha a ser feita.
+A quarta memória (\cod{sel} = \cod{11}) é uma \ac{ram} de duas portas, que guarda a forma arbitrária. A porta de leitura é endereçada pela fase, como as \acp{rom}; a porta de escrita é endereçada pelo computador. Com portas separadas, a tabela pode ser reescrita sem interromper a leitura. Na configuração do \ac{fpga}, a \ac{ram} recebe um eletrocardiograma sintético, gerado com o modelo dinâmico ECGSYN \cites{mcsharry2003,goldberger2000}: três equações diferenciais acopladas, com as ondas P, Q, R, S e T representadas por gaussianas na fase, e intervalos entre batimentos estocásticos, com espectro bimodal. Foram usados 120 batimentos por minuto em média, desvio de 3 batimentos por minuto e ruído de medida de 0,015~mV. A tabela contém dois batimentos, recortados no segmento TP para emendar sem descontinuidade; assim, com \(f = 1\)~Hz, a saída é um \ac{ecg} de 120 batimentos por minuto. A Figura~\ref{fig:luts} mostra o conteúdo das quatro tabelas.
 
-\subsection{Editores \LaTeX}
+\begin{figure}
+	\caption{Conteúdo das quatro tabelas de forma de onda.}
+	\label{fig:luts}
+	\includegraphics[width=\textwidth]{./figuras/luts}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
 
-Arquivos \enquote{.tex} são simples arquivos de texto, sem formatação, podendo ser editados até no infame Bloco de Notas, se necessário. Porém, todos os autores (iniciantes ou experientes) se beneficiam de um editor que \enquote{entende} \LaTeX.
+As memórias registram o endereço e a saída, de modo que a amostra sai dois clocks depois do endereço. Após o multiplexador, a amostra passa por um registrador de saída (\cod{output\_register}), que no \eng{reset} assume o código 128, o zero do sinal. Esse registrador foi colocado nos registradores de entrada e saída do \ac{fpga}, junto aos pinos, para que os 8~bits mudem na mesma borda. Isso é importante porque o DAC0800 não tem registrador de entrada: bits que mudassem em instantes diferentes produziriam códigos intermediários na saída. O núcleo \cod{dds\_core} reúne o acumulador de fase, as tabelas e o registrador de saída; da fase até o pino do \ac{dac}, a latência é de três clocks.
 
-Quem estiver trabalhando com o Overleaf, um editor já se encontra disponível na interface. Em uma instalação local, o autor precisará instalar um editor da sua preferência. Para quem não tiver, recomendo o TeXworks (disponível em \url{https://www.tug.org/texworks/}). Dentre suas características mais importantes, destaco: multi"-plataforma; robusto; e minimalista. Caso seu sistema operacional seja Windows, o TeX Live distribui o TeXworks através da coleção \texttt{collection-texworks}.
+\subsection{Controle pelo computador}\label{sec:controle}
 
-\subsection{Editando o código"-fonte}
+O protocolo usa um registrador de instrução virtual de 2~bits e um registrador de dados de 18~bits, deslocado com o \ac{lsb} primeiro, conforme a Tabela~\ref{tab:protocolo}.
 
-Agora que toda a preparação prévia está finalizada, podemos (finalmente) começar a tarefa de transformar o texto do modelo no texto do seu \ac{tcc}. O arquivo \texttt{main.tex} é o arquivo principal do modelo que, se compilado, produz \texttt{main.pdf} como resultado. Esse arquivo não possui muito conteúdo, no entanto. A única coisa que os autores precisam editar neste arquivo são os metadados declarados logo no seu início. Esses metadados são parte fundamental do formato \ac{pdfa}.
+\begin{table}
+	\caption{Instruções do protocolo de controle.}
+	\label{tab:protocolo}
+	\begin{tabular}{c l l}\toprule
+		IR & Instrução & Conteúdo do DR (18~bits)\\\midrule
+		\cod{00} & nenhuma (\eng{bypass}) & ---\\
+		\cod{01} & frequência & frequência em hertz\\
+		\cod{10} & forma de onda & \cod{sel} nos 2~bits menos significativos\\
+		\cod{11} & escrita na tabela arbitrária & endereço (bits 17 a 8) e dado (bits 7 a 0)\\\bottomrule
+	\end{tabular}
+	\legend{Fonte~---~Autoria própria.}
+\end{table}
 
-Dando sequência, o autor deve escolher duas opções da classe \texttt{coele-cm.cls}, na chamada do \verb|\documentclass|: o tipo de licenciamento Creative Commons; o estilo de citação e referências \ac{abnt}, numérico ou autor"-data. Contrária à crença popular, o modelo numérico não só atende às normas \ac{abnt}, como, na verdade, é recomendado por elas, em detrimento do sistema autor"-data. O arquivo \texttt{coele-cm.cls} \emph{não deve ser editado} pelos autores.
+O controle foi dividido em três blocos, um para cada domínio de clock e para a travessia entre eles:
+\begin{description}
+	\item[\cod{vjtag\_dr}] --- no domínio do \cod{tck}, desloca o registrador de dados durante o Shift-DR. No Update-DR, guarda a instrução e o valor deslocado e inverte o nível do sinal \cod{cmd\_toggle}, avisando que há um comando novo. No Capture-DR, carrega no registrador o último valor escrito com a mesma instrução, o que permite ler a configuração pelo \ac{jtag} para depuração. Na instrução \cod{00}, a saída \cod{tdo} vem de um registrador de \eng{bypass} de 1~bit;
+	\item[\cod{cmd\_sync}] --- passa o comando para o domínio de 10~MHz pela técnica do \eng{toggle} descrita na Seção~\ref{sec:cdc}: apenas \cod{cmd\_toggle} passa por um sincronizador de três \eng{flip-flops}; quando sua mudança é detectada, os 20~bits do comando já estão estáveis e são copiados, com um pulso de um clock em \cod{dst\_valid}. A técnica exige que dois comandos estejam separados por mais de quatro ciclos de 10~MHz (0,4~\(\mu\)s). Um deslocamento de 18~bits leva mais de 22 ciclos de \cod{tck}, ou 3,7~\(\mu\)s a 6~MHz, frequência máxima do USB-Blaster, de forma que o requisito é sempre atendido;
+	\item[\cod{control\_registers}] --- no domínio de 10~MHz, decodifica cada comando e atualiza os registradores de frequência e de forma de onda, ou gera um pulso de um clock na porta de escrita da \ac{ram}. Após o \eng{reset}, os registradores assumem 1~kHz e seno, de modo que a placa gera um sinal sem depender do computador.
+\end{description}
 
-Na subpasta \texttt{preambulo} há dois arquivos: \texttt{metadados.tex} e \texttt{preambulo.tex}. Ambos devem ser editados: o primeiro traz dados importantes sobre o trabalho; o segundo carrega pacotes e definições adicionais, específicas do trabalho sendo escrito.
+Os três blocos foram agrupados na entidade \cod{jtag\_control}, que contém toda a lógica do controle mas não o \ac{ip} do Virtual \ac{jtag}. O \ac{ip} e o \cod{jtag\_control} são instanciados juntos em \cod{jtag\_interface}. Essa separação permite simular o controle completo, com o \eng{testbench} fazendo o papel do \ac{ip}, cujo modelo de simulação não gera sinais.
 
-Por exemplo, embora as formatações básicas do \LaTeX\ sejam suficientes para descrição de equações, tanto em linha, como $y(t)=\sin(x(t))$, como num \eng{display}, como
-\[y(t)=\frac{\mathrm{d}x(t)}{\mathrm{d}t},\]
-ou até, quando necessário, para equações numeradas, por serem referenciadas diretamente no texto, como a Eq.~(\ref{eq:conv})
-\begin{equation}\label{eq:conv}
-	y(t)=\int_{-\infty}^\infty x(\tau)h(t-\tau)\,\mathrm{d}\tau.
+\subsection{Clock, reset e pinagem}
+
+O \ac{pll} gera o clock de 10~MHz dividindo por cinco o oscilador de 50~MHz. O \eng{reset} do sistema vem do botão KEY[0] e da indicação de travamento do \ac{pll}, e passa por um sincronizador (\cod{reset\_sync}): entra em \eng{reset} de forma assíncrona, assim que o botão é pressionado, e sai em sincronia com o clock, três bordas depois de o botão ser solto. Assim, todos os registradores saem do \eng{reset} na mesma borda.
+
+A Tabela~\ref{tab:pinos} mostra a pinagem. O barramento do \ac{dac} usa os pinos 3 a 10 do conector de expansão, os mesmos de uma versão anterior usada em bancada, e o pino 1 é mantido em nível baixo como referência de terra no cabo. Dois \eng{LEDs} indicam o travamento do \ac{pll} e a chegada de cada comando do computador.
+
+\begin{table}
+	\caption{Pinagem na placa DE2-115.}
+	\label{tab:pinos}
+	\begin{tabular}{l l l l}\toprule
+		Porta & Pino & Sinal na placa & Padrão de E/S\\\midrule
+		\cod{clk\_50} & PIN\_Y2 & CLOCK\_50 & LVTTL 3,3~V\\
+		\cod{rst\_n} & PIN\_M23 & KEY[0] & 2,5~V\\
+		\cod{dac(0)} a \cod{dac(7)} & PIN\_AB21 a PIN\_AE15 & GPIO[2] a GPIO[9] & LVTTL 3,3~V\\
+		\cod{dac\_gnd} & PIN\_AB22 & GPIO[0] & LVTTL 3,3~V\\
+		\cod{led\_locked} & PIN\_E21 & LEDG[0] & 2,5~V\\
+		\cod{led\_cmd} & PIN\_E22 & LEDG[1] & 2,5~V\\\bottomrule
+	\end{tabular}
+	\legend{Fonte~---~Autoria própria.}
+\end{table}
+
+As restrições de tempo foram descritas em um arquivo \ac{sdc}: o clock de 50~MHz e os clocks derivados do \ac{pll}; o clock do \ac{jtag} como assíncrono em relação aos demais, já que a travessia é tratada pelo \cod{cmd\_sync}; e caminhos sem requisito de tempo para o botão, os \eng{LEDs} e o barramento do \ac{dac}, que não tem clock.
+
+\section{Verificação por simulação}
+
+Cada bloco do projeto digital tem um \eng{testbench} auto-verificável, escrito em \ac{vhdl}-2008 e executado no simulador GHDL \cite{ghdl2025}. Os blocos gerados pela Intel são simulados com os modelos da biblioteca \cod{altera\_mf}, distribuída com o Quartus. Cada \eng{testbench} compara a saída do bloco, ciclo a ciclo, com um modelo de referência escrito no próprio \eng{testbench}, conta os erros e termina com a mensagem \enquote{OK} apenas se não houver nenhum. Para o núcleo \ac{dds}, por exemplo, o modelo calcula a fase pela Equação~(\ref{eq:acumulador}), o endereço pelo truncamento e a amostra esperada pela tabela correspondente, considerando a latência de três clocks.
+
+Os blocos do controle são verificados com um modelo de comportamento do Virtual \ac{jtag}: procedimentos que geram o \cod{tck}, a instrução e a sequência Capture-DR, Shift-DR e Update-DR, como o \ac{ip} faria a cada comando do \cod{quartus\_stp}. A Tabela~\ref{tab:testbenches} lista os 16 \eng{testbenches} e o que cada um confere. Um \eng{script} compila os fontes e executa todos eles em sequência. Para as figuras deste texto, os \eng{testbenches} são executados gravando os sinais de interesse em arquivos \ac{vcd}, que um \eng{script} em Python lê e desenha.
+
+\begin{table}
+	\caption{\eng{Testbenches} do projeto digital.}
+	\label{tab:testbenches}
+	\begin{tabular}{l p{0.62\textwidth}}\toprule
+		\eng{Testbench} & O que é conferido\\\midrule
+		\cod{tb\_frequency\_translator} & as \(2^{18}\) entradas: \ac{ftw} conforme a Equação~(\ref{eq:ftw}) e erro menor que 1~\ac{lsb}\\
+		\cod{tb\_word\_adder} & soma com estouro, casos de borda e 10\,000 pares aleatórios\\
+		\cod{tb\_phase\_register} & carga apenas na borda de subida e \eng{reset} assíncrono\\
+		\cod{tb\_truncator} & endereço igual aos 10~bits mais significativos da fase\\
+		\cod{tb\_phase\_accumulator} & endereço ciclo a ciclo, trocas de frequência sem salto de fase\\
+		\cod{tb\_out\_mux} & seleção para cada código de \cod{sel}\\
+		\cod{tb\_LUT} & os 1024 endereços das três \acp{rom} e da \ac{ram}, escrita durante a leitura\\
+		\cod{tb\_output\_register} & código 128 no \eng{reset} e carga na borda\\
+		\cod{tb\_dds\_core} & cada amostra contra o modelo, nas quatro formas e com trocas em operação\\
+		\cod{tb\_reset\_sync} & entrada imediata e saída na terceira borda\\
+		\cod{tb\_vjtag\_dr} & deslocamento, comando no Update-DR, leitura no Capture-DR e \eng{bypass}\\
+		\cod{tb\_cmd\_sync} & 300 comandos de 6~MHz para 10~MHz, todos entregues uma vez e em ordem\\
+		\cod{tb\_control\_registers} & valores após o \eng{reset}, decodificação e pulso de escrita\\
+		\cod{tb\_jtag\_control} & do registrador de dados do \ac{jtag} até os registradores de configuração\\
+		\cod{tb\_system} & do comando do computador até a amostra do \ac{dac}, incluindo o envio de uma tabela\\
+		\cod{tb\_DDS} & entidade do topo com o \ac{pll}: clock, \eng{LEDs}, seno de 1~kHz e \eng{reset}\\\bottomrule
+	\end{tabular}
+	\legend{Fonte~---~Autoria própria.}
+\end{table}
+
+\section{Interface com o usuário}
+
+A interface gráfica foi escrita em Python 3.12, com a biblioteca Tkinter, e usa apenas a biblioteca padrão da linguagem. Ela mantém aberto um processo do \cod{quartus\_stp} e envia a ele comandos Tcl: trava o acesso ao \ac{jtag}, desloca a instrução uma vez e o registrador de dados uma vez para cada valor, e libera o acesso. Uma \eng{thread} separada executa os comandos em ordem e devolve os resultados por uma fila de eventos, de modo que a janela não trava durante o envio de uma tabela, que exige 1024 deslocamentos.
+
+A interface permite escolher a frequência, mostrando a palavra de sintonia calculada pela Equação~(\ref{eq:ftw}), e a forma de onda; carregar a tabela arbitrária de um arquivo \ac{mif} ou de um arquivo de texto com 1024 valores, ou gerá-la a partir de formas prontas; visualizar a tabela antes do envio; e acompanhar as mensagens do \cod{quartus\_stp} em um console. \pendente{Inserir uma captura de tela da interface.}
+
+\section{Placa analógica}
+
+A placa analógica recebe os 8~bits pelo conector J1 e é alimentada com \(\pm15\)~V, para os amplificadores operacionais e o \ac{dac}, e +10~V, para a referência do \ac{dac}. O circuito tem cinco blocos, ligados conforme a Figura~\ref{fig:sistema}. Os valores a seguir são os da simulação do circuito, que segue a mesma topologia da placa. \pendente{Conferir se os valores montados na placa coincidem com os da simulação.}
+
+O DAC0800 tem a referência de 10~V aplicada através de um resistor de 5~k\(\Omega\), o que, pela Equação~(\ref{eq:dac0800}), fixa \(I_{REF} = 2\)~mA e \(I_{FS} \approx 1{,}992\)~mA. Com o pino de limiar lógico no terra, o limiar das entradas é de 1,4~V, compatível com a lógica de 3,3~V do \ac{fpga}. Na placa, o pino DB7 do conector J1, que recebe o \ac{msb} da amostra, é ligado à entrada B1 do conversor, que é o seu \ac{msb}.
+
+As duas saídas de corrente alimentam um amplificador de diferenças com quatro resistores de 1~k\(\Omega\), cuja saída é
+\begin{equation}\label{eq:vdif}
+	V_{dif} = \left(I_{OUT} - \overline{I_{OUT}}\right) \cdot 1~\mathrm{k}\Omega,
 \end{equation}
-Por vezes, algo ainda mais sofisticado pode ser necessário. O pacote \texttt{amsmath} (parte da \texttt{collection-latex}), pode ser carregado para acesso à interfaces extras para tipografia matemática. Caso alguns símbolos matemáticos extras sejam necessários, o pacote \texttt{amsfonts} (parte da \texttt{collection-basic}) pode ser carregado.
+que vai de \(-1{,}99\)~V, no código 0, a \(+1{,}99\)~V, no código 255. Em seguida, um filtro Sallen-Key de ganho unitário, com \(R_1 = R_2 = 48~\Omega\) e \(C_1 = C_2 = 3{,}3\)~nF, tem, pela Equação~(\ref{eq:sallen_key}), \(f_0 \approx 1{,}00\)~MHz e \(Q = 0{,}5\). A resposta em frequência, mostrada na Figura~\ref{fig:filtro}, tem atenuação de 3~dB em 647~kHz, perda de 0,6~dB na frequência máxima do gerador e atenuação de cerca de 40~dB em \(f_{clk}\), onde surgem as primeiras imagens.
 
-A mesma ideia se aplica para todos os arquivos \enquote{.tex} nas subpastas \texttt{pretextual}, \texttt{textual} e \texttt{postextual}. Elementos que não sejam obrigatórios: Dedicatória; Agradecimentos; Epígrafe; Lista de figuras; Lista de tabelas; Lista de abreviaturas e siglas; Apêndices; ou Anexos; podem ser omitidos comentando (adicionando um \verb|%| no iní:cio) a linha. Capítulos adicionais de Apêndices ou Anexos podem ser incluídos, conforme feito para os disponíveis no modelo.
+\begin{figure}
+	\caption{Resposta em frequência do filtro de reconstrução.}
+	\label{fig:filtro}
+	\includegraphics[width=\textwidth]{./figuras/filtro}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
 
-\section{Lista de referências}
+O ganho é ajustado por um amplificador inversor com um potenciômetro de 10~k\(\Omega\) (VR1). Por fim, um seguidor de tensão aciona um par complementar BC847 e BC857, polarizado por dois diodos LL4148 em classe AB, que entrega o sinal ao conector de saída J7. Os quatro amplificadores são as quatro seções de um TL074.
 
-Na subpasta \texttt{postextual} há um arquivo chamado \texttt{refs.bib}. Esse arquivo contém o banco de dados das referências do trabalho, a partir do qual o \texttt{biblatex} irá realizar as formatações necessárias das citações e lista de referências, conforme as normas \ac{abnt}. Embora esse arquivo possa ser editado diretamente, recomenda"-se o uso de um gerenciador, como o Zotero (disponível em \url{www.zotero.org})\footnote{Também é possível utilizar o Mendeley (\url{www.mendeley.com}), porém ele ficou \enquote{estranho} depois que a Elsevier assumiu seu controle.}.
+A placa foi projetada no Altium Designer e fabricada; a Figura~\ref{fig:placa} mostra a placa montada. O circuito foi simulado no LTspice com um macromodelo comportamental do DAC0800, escrito a partir das características típicas da folha de dados \cite{ti2013}: referência, divisão da corrente entre as saídas, limiar lógico, tempo de comutação de 70~ns e limites de conformidade das saídas. Os estímulos das entradas digitais são fontes lineares por partes geradas a partir da simulação do \ac{vhdl}, para uma senoide de 1~kHz.
 
-O uso do gerenciador permite que a base de dados seja populada, a partir dos próprios metadados de um \ac{pdf} adicionado (lembrando de conferir), ou a partir do \ac{doi}. O número \ac{doi} é uma fonte mais confiável dos metadados, porém nem todas as referências podem possuí"-lo.
-
-Embora o pacote \texttt{biblatex-abnt} seja amplamente reconhecido pela comunidade de usuários como uma implementação fidedigna da: \citetitle{NBR6023}; e da \citetitle{NBR10520}; por se tratar de um trabalho voluntário, distribuído gratuita e livremente, há alguns problemas. As distribuições \TeX, como o TeX Live, buscam seus pacotes na \ac{ctan}. A versão do \texttt{biblatex-abnt} disponível na \ac{ctan} é novembro de 2018, enquanto a versão de desenvolvimento no repositório de origem (\url{https://github.com/abntex/biblatex-abnt}) é de julho de 2023. Em uma conversa com o mantenedor (\eng{issue \#126}), ele manifestou não dispor do tempo para fazer todos os testes e remeter uma atualização no \ac{ctan}.
-
-Em vista disso, lancei mão do seguinte \eng{workaround}: os arquivos \texttt{abnt.bbx}, \texttt{abnt.cbx}, \texttt{abnt-numeric.bbx}, \texttt{abnt-numeric.cbx}, \texttt{brazil-abnt.lbx} e \texttt{brazilian-abnt.lbx} foram copiados do repositório \url{https://github.com/abntex/biblatex-abnt} para a pasta raiz deste projeto. Assim, o \LaTeX\ usa esses arquivos atualizados, ao invés de usar os arquivos (com alguns \eng{bugs}) disponíveis no \ac{ctan}. Esses arquivos também \emph{não devem ser editados}.
+\begin{figure}
+	\caption{Placa analógica montada, com o DAC0800 (IC1), o TL074 (U1) e o potenciômetro de ganho (VR1).}
+	\label{fig:placa}
+	\includegraphics[width=0.6\textwidth]{./figuras/placa}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}

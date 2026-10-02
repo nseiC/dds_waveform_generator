@@ -1,19 +1,21 @@
-% Modelo canônico de TCC do curso de Engenharia Eletrônica da UTFPR campus Campo Mourão.
+% TCC: Gerador de formas de onda por síntese digital direta em FPGA (Nicholas Seifert).
+% Baseado no modelo canônico de TCC do curso de Engenharia Eletrônica da UTFPR campus Campo
+% Mourão (prof. Osmar Tormena Júnior). Trechos em vermelho (\pendente) ainda dependem do autor.
 %
 
 %-----------------------------------------------------------------
 % METADADOS PDF/A
 %-----------------------------------------------------------------
 \begin{filecontents*}{\jobname.xmpdata}
-	\Author{Osmar Tormena Júnior}
-	\Title{Modelo LaTeX de TCC}
+	\Author{Nicholas Seifert}
+	\Title{Gerador de formas de onda por síntese digital direta em FPGA}
 	\Language{pt-BR}
-	\Keywords{LaTeX\sep ABNT\sep UTFPR\sep trabalho de conclusão de curso}
+	\Keywords{síntese digital direta\sep FPGA\sep VHDL\sep gerador de funções\sep JTAG}
 	\Publisher{RIUT}
-	\Subject{Redação de trabalhos de conclusão de curso, conforme as normas ABNT e regulamentos da UTFPR, utilizando o LaTeX.}
+	\Subject{Desenvolvimento de um gerador de formas de onda por síntese digital direta em FPGA, controlado por computador via Virtual JTAG, com placa analógica de saída.}
 	\Copyright{Creative Commons}
 	\CopyrightURL{https://creativecommons.org/licenses/by/4.0/deed.pt_BR}
-	\Contributor{Orientador \sep Co-orientador}
+	\Contributor{André Luis Régis Monteiro \sep Márcio Rodrigues da Cunha}
 \end{filecontents*}
 
 \documentclass[%
@@ -84,6 +86,7 @@
 %-----------------------------------------------------------------
 
 \mainmatter
+\acresetall	% siglas por extenso de novo na primeira vez que aparecem no texto
 \include{./textual/introducao}
 \include{./textual/teoria}
 \include{./textual/metodologia}
@@ -100,15 +103,15 @@
 %---
 % Apêndices (opcional)
 \appendix
-\chapter{Meu apêndice}
+\chapter{Organização do repositório}\label{ap:repositorio}
 \input{./postextual/apendice}
 %---
 
 %---
 % Anexos (opcional)
-\attachment
-\chapter{Meu anexo}
-\input{./postextual/anexo}
+%\attachment
+%\chapter{Meu anexo}
+%\input{./postextual/anexo}
 %---
 
 %-----------------------------------------------------------------

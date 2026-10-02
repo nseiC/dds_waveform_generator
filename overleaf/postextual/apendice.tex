@@ -1,1 +1,19 @@
-O apêndice é um elemento pós"-textual opcional contendo elementos de autoria própria que não se adequam ao corpo do texto.
+Todos os arquivos do trabalho estão no repositório \url{https://github.com/nseiC/dds_waveform_generator} \cite{seifert2026}, organizados conforme a Tabela~\ref{tab:repositorio}.
+
+\begin{table}[h]
+	\caption{Organização do repositório do trabalho.}
+	\label{tab:repositorio}
+	\begin{tabular}{l p{0.7\textwidth}}\toprule
+		Pasta & Conteúdo\\\midrule
+		\cod{fpga/} & projeto do Quartus: código \ac{vhdl}, \acp{ip}, tabelas \ac{mif}, pinagem e restrições de tempo\\
+		\cod{fpga/testbenches/} & os 16 \eng{testbenches}, o \eng{script} que executa todos e o que desenha as figuras\\
+		\cod{GUI/} & interface gráfica em Python e a biblioteca de comunicação pelo Virtual \ac{jtag}\\
+		\cod{analog/layout/} & projeto da placa analógica no Altium Designer e arquivos de fabricação\\
+		\cod{analog/simulation/} & simulação da placa analógica no LTspice e os estímulos gerados a partir do \ac{vhdl}\\
+		\cod{docs/} & página interativa da roda de fase e os \eng{scripts} das figuras deste texto\\
+		\cod{overleaf/} & este texto\\\bottomrule
+	\end{tabular}
+	\legend{Fonte~---~Autoria própria.}
+\end{table}
+
+Para reproduzir os resultados de simulação, basta executar o \eng{script} \cod{fpga/testbenches/run\_all.sh}, que requer o GHDL e a biblioteca \cod{altera\_mf} do Quartus. As figuras dos \eng{testbenches} são geradas pelo \eng{script} \cod{fpga/testbenches/gerar\_figuras.py}, e as demais figuras deste texto por \cod{docs/gerar\_figuras\_tcc.py}. O projeto do \ac{fpga} é compilado abrindo o arquivo \cod{fpga/DDS.qpf} no Quartus Prime 18.1.

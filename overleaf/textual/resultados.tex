@@ -1,37 +1,203 @@
 \chapter{Resultados e discussões}\label{cap:resultados}
 
-O resultado de todo o presente esforço é o documento em mãos. Idealmente, ele atende à todas as normas \ac{abnt} e também agrada às idiossincrasias do autor, orientador, \ac{pratcc} e bibliotecário\footnote{Boa sorte!}. Adicionalmente, espera"-se que o documento compile rapidamente, especialmente para quem estiver utilizando o Overleaf.
+Este capítulo apresenta os resultados da síntese do projeto digital no \ac{fpga}, da verificação por simulação, da simulação da placa analógica e dos ensaios em bancada, discutindo cada um.
 
-Certamente que um dos principais fatores no tempo de compilação é o número de páginas no \ac{pdf} resultante. O presente texto possui número de páginas similar ao de um \ac{tcc} pequeno. Outro fator determinante é o número e forma de importação de figuras.
+\section{Síntese e análise de tempo}
 
-Fotografias devem ser importadas no formato \ac{jpeg}. Sua qualidade e resolução deve ser suficiente para a apresentação no documento. Embora seja possível escalar uma figura para que ela caiba no texto\footnote{Veja a documentação do comando \texttt{$\backslash$includegraphics}, do pacote \texttt{graphicx}.}, isso consome tempo e recursos. A largura da página A4, exceto pelas margens exigidas pelas normas \ac{abnt}, é de 16~cm. Pré"-processe suas figuras para que elas não excedam essa largura e para que o tamanho do \ac{jpeg} não seja excessivo --- pois isso será embutido no \ac{pdf} final.
-
-Imagens vetoriais (\lat{e.g.} gráficos, diagramas de circuitos, etc.) devem ser importadas no formato \ac{png} ou \ac{pdf}. Especialmente no caso do \ac{png}, o arquivo pode ser reduzido se o canal alfa (transparência) for removido\footnote{Isso foi feito para os símbolos da licença Creative Commons, embutidos na folha de rosto.}. As mesmas considerações sobre a necessidade de redimensionar as imagens \ac{jpeg} valem para as imagens \ac{png} e \ac{pdf} incluídas.
-
-Uma boa dica é: exerça parcimônia ao adicionar figuras em seu trabalho. Pode ser uma forma rápida e fácil de \enquote{encher linguiça} e dar mais corpo ao trabalho, porém isso pode atrasar (e muito) seu tempo de compilação. Nunca insira uma fotografia como um \ac{png}. Jamais insira um gráfico como \ac{jpeg}.
-
-Um último detalhe relevante para o tempo de compilação, especialmente trabalhos longos com muito texto, é a utilização do pacote \texttt{microtype}. Ele aumenta (muito) a complexidade dos cálculos para o algoritmo de quebra de linha e hifenização do \TeX. A Tabela~\ref{tab:time} traz as informações de tempo de compilação do presente documento.
+O projeto foi compilado no Quartus Prime 18.1 Lite para o EP4CE115F29C7. A Tabela~\ref{tab:recursos} mostra os recursos usados. O gerador ocupa menos de 1\% dos elementos lógicos do \ac{fpga}. Os 32\,768~bits de memória correspondem às quatro tabelas de \(1024 \times 8\)~bits, e os quatro multiplicadores de \(9 \times 9\)~bits são os da conversão de frequência da Equação~(\ref{eq:ftw}). Os registradores de saída do barramento do \ac{dac} foram efetivamente alocados nos registradores de entrada e saída, junto aos pinos.
 
 \begin{table}
-	\caption{Tempo de compilação.}
-	\label{tab:time}
-	\begin{tabular}{r c c c c}\toprule
-		\multirow{2}{*}{Plataforma}	&	\multicolumn{2}{c}{Com \texttt{microtype}}	&	\multicolumn{2}{c}{Sem \texttt{microtype}}\\
-								&	Compilação	& Re-compilação	& Compilação	& Re-compilação\\\midrule
-		Local	&	37 s	&	6,8 s	&	33 s	&	6,2 s\\
-		Overleaf	&	20 s	&	8,8 s	&	20 s	&	8,0 s\\\bottomrule
+	\caption{Recursos do \acs{fpga} usados pelo projeto.}
+	\label{tab:recursos}
+	\begin{tabular}{l r r}\toprule
+		Recurso & Usado & Disponível\\\midrule
+		Elementos lógicos & 378 & 114\,480\\
+		Registradores & 262 & ---\\
+		Bits de memória & 32\,768 & 3\,981\,312\\
+		Multiplicadores de \(9 \times 9\)~bits & 4 & 532\\
+		\acp{pll} & 1 & 4\\
+		Pinos & 13 & 529\\\bottomrule
 	\end{tabular}
 	\legend{Fonte~---~Autoria própria.}
 \end{table}
 
-A plataforma local é um MacBook Pro (Retina, 13-inch, Early 2015): com processador 2,7 GHz Dual-Core Intel Core i5; memória de 8 GB 1867 MHz DDR3; placa gráfica Intel Iris Graphics 6100 1536 MB; com sistema operacional macOS Monterey (12.7.4). Uma versão atualizada do TeX Live 2024 foi instalada.
+A Tabela~\ref{tab:tempo} resume a análise de tempo, no modelo mais lento do dispositivo (1,2~V e 85~°C). O domínio de 10~MHz poderia operar a até 100,25~MHz, uma margem de dez vezes. O domínio do \ac{jtag} poderia operar a até 29,68~MHz, contra os 6~MHz máximos do USB-Blaster. Todas as folgas são positivas, e nenhum caminho ficou sem restrição de tempo.
 
-A plataforma Overleaf ainda não oferece o TeX Live 2024, sendo necessárias poucas modificações na classe para rodar no TeX Live 2023. O tempo limite de 20~s para a compilação do \ac{pdf} na conta gratuita será desafiadora de atingir, haja visto que a compilação do presente documento, menor que um \ac{tcc} típico, chegou ao tempo limite.
+\begin{table}
+	\caption{Resultado da análise de tempo (modelo lento, 85~°C).}
+	\label{tab:tempo}
+	\begin{tabular}{l c c c}\toprule
+		Domínio de clock & Frequência máxima & Folga de \eng{setup} & Folga de \eng{hold}\\\midrule
+		10~MHz (\ac{pll}) & 100,25~MHz & 90,0~ns & 0,30~ns\\
+		\cod{tck} (\ac{jtag}) & 29,68~MHz & 33,2~ns & 0,40~ns\\\bottomrule
+	\end{tabular}
+	\legend{Fonte~---~Autoria própria.}
+\end{table}
 
-A compilação exige rodar o \pdflatex\ uma vez, seguido de uma execução do \texttt{biber} e, finalmente, duas execuções consecutivas do \pdflatex. Isso é feito automaticamente pelo \texttt{latexmk}. Assim, todos os arquivos de suporte para produção da cópia final são populados e ficam disponíveis. A re"-compilação exige, normalmente, apenas uma execução do \pdflatex. No caso de alguma referência cruzada mudar, são duas execuções do \pdflatex. Caso alguma citação mude, será igual à compilação.
+A análise de metaestabilidade do Quartus identificou duas cadeias sincronizadoras de três registradores, a do \cod{cmd\_sync} e a do \cod{reset\_sync}, com tempo de acomodação disponível de pelo menos 294~ns, e estimou um tempo médio entre falhas típico superior a \(10^{9}\) anos para o projeto.
 
-Isso deixa clara a diferença de tempos de compilação e re"-compilação, conforme registrados na Tabela~\ref{tab:time}. A influência do pacote \texttt{microtype} também pode ser vista nos tempos, adicionando os seguintes comentários: sem o pacote \texttt{microtype} a compilação do \ac{pdf} finaliza com 1 \eng{bad box}; enquanto a compilação com o \texttt{microtype} finaliza sem nenhum \eng{bad box}. As \eng{bad boxes} deverão ser resolvidas manualmente pelo autor, quando for produzir sua cópia final. Isso normalmente exige alguma re"-estruturação do texto. O \texttt{microtype}, por alterar as quebrar de linha pode, em alguns casos, alterar o número de páginas do documento final. No caso do presente documento, isso não ocorreu. De toda forma, o \eng{overhead} do \texttt{microtype} fica abaixo de 10\%. Ele é significativo, mas não resolve o problema do tempo de compilação no Overleaf.
+\section{Verificação do núcleo digital}
 
-Os tempos de re"-compilação locais são menores que os do Overleaf, o que é esperado considerando a natureza do experimento e as plataformas envolvidas. Porém, observa"-se uma significativa discrepância nos tempos de compilação. Espera"-se que o Overleaf utilize o \texttt{latexmk} de uma maneira otimizada. Uma rápida análise da documentação do \texttt{latexmk} revela que algumas otimizações podem ser feitas para melhorar os tempos de compilação na plataforma local.
+Os 16 \eng{testbenches} da Tabela~\ref{tab:testbenches} terminaram sem nenhum erro. A execução completa leva cerca de 2,5~min em um computador pessoal; os mais demorados são o \cod{tb\_frequency\_translator}, que percorre as \(2^{18}\) entradas, e o \cod{tb\_DDS}, que simula o modelo do \ac{pll}. As figuras desta seção e das seguintes foram desenhadas a partir dos sinais gravados nessas simulações.
 
-Em relação à conformidade com o padrão \ac{pdfa}, o software veraPDF (disponível em \url{verapdf.org}) foi utilizado para averiguar no \texttt{main.pdf} produzido. O teste com perfil de validação \ac{pdfa}-3u foi concluído com sucesso, sem um único ponto de falha.
+\subsection{Conversão de frequência}
+
+A Figura~\ref{fig:tb_ftw}(a) mostra a palavra de sintonia para todas as entradas, e a Figura~\ref{fig:tb_ftw}(b) mostra o erro em relação ao valor exato \(f \cdot 2^{32}/f_{clk}\), no trecho de 0 a 2~kHz. O erro é sempre menor que 1~\ac{lsb}, como previsto no Capítulo~\ref{cap:metodologia}: o maior valor em toda a faixa é de 0,99986~\ac{lsb}, em 2\,752~Hz, o que corresponde a um erro de frequência de 2,328~mHz, menor que a resolução \(\Delta f\). O padrão em linhas inclinadas vem da parte fracionária de \(f \cdot 2^{32}/f_{clk}\), que avança 0,4967 a cada hertz.
+
+\begin{figure}
+	\caption{Conversão de frequência: (a) palavra de sintonia para as \(2^{18}\) entradas; (b) erro de truncamento.}
+	\label{fig:tb_ftw}
+	\includegraphics[width=\textwidth]{./figuras/tb_frequency_translator}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\subsection{Acumulador de fase}
+
+A Figura~\ref{fig:tb_acc} mostra o endereço da tabela durante a simulação do acumulador de fase. Em 1~kHz, a palavra de sintonia é 429\,496, e a frequência gerada é de 999,9983~Hz; o endereço percorre os 1024 valores em rampas de 1~ms, e três voltas se completam em 30\,001 clocks (Figura~\ref{fig:tb_acc}(a)). As Figuras~\ref{fig:tb_acc}(b) e (c) mostram as trocas de frequência com o acumulador em operação: em cada troca, o endereço continua do valor em que estava, sem salto, e passa a avançar no novo passo. Com 0~Hz, a fase permanece parada. Em todos os clocks, o endereço coincidiu com o do modelo de referência.
+
+\begin{figure}
+	\caption{Endereço da tabela no acumulador de fase: (a) em 1~kHz; (b) e (c) nas trocas de frequência.}
+	\label{fig:tb_acc}
+	\includegraphics[width=\textwidth]{./figuras/tb_phase_accumulator}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\subsection{Tabelas de forma de onda}
+
+A Figura~\ref{fig:tb_lut} mostra, para cada memória, o valor lido em cada um dos 1024 endereços, percorridos em ordem embaralhada, sobre o conteúdo esperado dos arquivos \ac{mif}. As seis varreduras terminaram sem nenhuma diferença. A varredura (e) foi feita com a escrita de um novo padrão em toda a \ac{ram} ao mesmo tempo, e confirma que a escrita não perturba a leitura das outras tabelas; a varredura (f) confirma que a \ac{ram} devolve o padrão escrito, três períodos de uma senoide. A Figura~\ref{fig:tb_lut_lat} mostra a latência de dois clocks entre o endereço e a amostra.
+
+\begin{figure}
+	\caption{Leitura das quatro memórias, endereço a endereço, comparada com o conteúdo esperado.}
+	\label{fig:tb_lut}
+	\includegraphics[width=\textwidth]{./figuras/tb_LUT_tabelas}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\begin{figure}
+	\caption{Latência de dois clocks entre o endereço e a amostra nas memórias.}
+	\label{fig:tb_lut_lat}
+	\includegraphics[width=\textwidth]{./figuras/tb_LUT_latencia}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\subsection{Núcleo DDS}
+
+O \eng{testbench} do núcleo \cod{dds\_core} comparou 14\,034 amostras de saída com o modelo de referência, sem nenhuma diferença. A Figura~\ref{fig:tb_core} mostra trechos da saída em cada situação testada. Na Figura~\ref{fig:tb_core}(b), a frequência muda de 100~kHz para 262\,143~Hz no instante marcado pela linha tracejada, e o sinal continua sem descontinuidade. Na Figura~\ref{fig:tb_core}(f), a forma de onda é um dente de serra escrito na \ac{ram} enquanto o seno estava na saída.
+
+\begin{figure}
+	\caption{Saída do núcleo \acs{dds} para as quatro formas de onda, na troca de frequência e após a escrita da tabela arbitrária.}
+	\label{fig:tb_core}
+	\includegraphics[width=\textwidth]{./figuras/tb_dds_core_formas}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+A Figura~\ref{fig:tb_core_lat} mostra a saída do \eng{reset} em 100~kHz. Durante o \eng{reset}, a amostra permanece em 128, o zero do sinal. Depois dele, o endereço avança 10 posições por clock (\(100~\text{kHz} \cdot 1024/10~\text{MHz} \approx 10{,}24\)), e cada endereço aparece na saída três clocks depois, como previsto.
+
+\begin{figure}
+	\caption{Saída do \eng{reset} no núcleo \acs{dds}: latência de três clocks entre o endereço e a amostra.}
+	\label{fig:tb_core_lat}
+	\includegraphics[width=\textwidth]{./figuras/tb_dds_core_latencia}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\section{Verificação do controle pelo computador}
+
+A Figura~\ref{fig:tb_vjtag} mostra dois comandos de frequência no bloco \cod{vjtag\_dr}. Em cada um, o Capture-DR é seguido de 18 ciclos de Shift-DR, em que os bits entram por \cod{tdi}, com o \ac{lsb} primeiro, e o registrador \cod{dr} se forma. No Update-DR, o valor é copiado para \cod{cmd\_data} e \cod{cmd\_toggle} muda de nível. Durante o segundo deslocamento, \cod{tdo} devolve o valor do primeiro comando (\cod{2A5A5}), carregado no Capture-DR, o que permite ler a configuração.
+
+\begin{figure}
+	\caption{Dois comandos de frequência no registrador de dados do Virtual \acs{jtag}.}
+	\label{fig:tb_vjtag}
+	\includegraphics[width=\textwidth]{./figuras/tb_vjtag_dr}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+A Figura~\ref{fig:tb_cmd_sync} mostra a passagem de um comando para o domínio de 10~MHz. A mudança de \cod{src\_toggle} percorre os três \eng{flip-flops} do sincronizador; quando chega ao último, o dado é copiado para \cod{dst\_data} e \cod{dst\_valid} pulsa por um clock. No \eng{testbench}, 300 comandos com dados e intervalos aleatórios, gerados por um clock de 6~MHz sem relação de fase com o de destino, foram entregues uma única vez, em ordem e com o dado correto, e um \eng{reset} no destino não repetiu nenhum comando.
+
+\begin{figure}
+	\caption{Passagem de um comando do domínio do \cod{tck} para o de 10~MHz.}
+	\label{fig:tb_cmd_sync}
+	\includegraphics[width=\textwidth]{./figuras/tb_cmd_sync}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+A Figura~\ref{fig:tb_jtag} mostra o caminho completo de um comando de 440~Hz no bloco \cod{jtag\_control}: do deslocamento no domínio do \cod{tck} até o registrador de frequência no domínio de 10~MHz. O registrador é atualizado 566~ns após o Update-DR, um tempo muito menor que o de um novo deslocamento. No mesmo \eng{testbench}, 64 escritas consecutivas na tabela geraram 64 pulsos de escrita, na ordem e com os endereços e dados corretos.
+
+\begin{figure}
+	\caption{Comando de frequência do registrador de dados do \acs{jtag} até o registrador de frequência.}
+	\label{fig:tb_jtag}
+	\includegraphics[width=\textwidth]{./figuras/tb_jtag_control}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\section{Verificação do sistema}
+
+O \eng{testbench} \cod{tb\_system} reúne o controle e o núcleo e faz o papel do computador, enviando a mesma sequência de comandos que a interface gráfica enviaria. A Figura~\ref{fig:tb_sys} mostra a saída durante toda a simulação. Após o \eng{reset}, sem nenhum comando, o gerador produz o seno de 1~kHz. Em seguida, o computador pede 100~kHz e seno, depois sinc, envia uma tabela inteira, com 1024 escritas, e escolhe a forma arbitrária em 50~kHz. A Figura~\ref{fig:tb_sys_det}(a) mostra o momento em que o comando de frequência chega, e a Figura~\ref{fig:tb_sys_det}(b), a tabela enviada sendo reproduzida. Em cada trecho, cada amostra foi comparada com a tabela correspondente, e a frequência medida pelas voltas do endereço coincidiu com a pedida, dentro da tolerância de 0,1\% usada no \eng{testbench}.
+
+\begin{figure}
+	\caption{Saída do sistema durante a sequência de comandos do computador.}
+	\label{fig:tb_sys}
+	\includegraphics[width=\textwidth]{./figuras/tb_system_visao_geral}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\begin{figure}
+	\caption{Detalhes da simulação do sistema: (a) chegada do comando de frequência; (b) tabela enviada pelo \acs{jtag} reproduzida na saída.}
+	\label{fig:tb_sys_det}
+	\includegraphics[width=\textwidth]{./figuras/tb_system_detalhes}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+Por fim, o \eng{testbench} \cod{tb\_DDS} simula a entidade do topo, com o \ac{pll} e as memórias pelos modelos da Intel. A Figura~\ref{fig:tb_pll} mostra o travamento do \ac{pll}: o clock de 10~MHz surge, o \eng{LED} de travamento acende e o \eng{reset} interno é liberado três clocks depois. A Figura~\ref{fig:tb_dds} mostra os pinos do \ac{dac}: o seno de 1~kHz após a liberação do botão e o retorno ao código 128 quando o botão é pressionado novamente. A frequência medida nos pinos ficou dentro de 1~Hz de 1~kHz, a tolerância usada no \eng{testbench}.
+
+\begin{figure}
+	\caption{Travamento do \acs{pll} e liberação do \eng{reset} interno na entidade do topo.}
+	\label{fig:tb_pll}
+	\includegraphics[width=\textwidth]{./figuras/tb_DDS_pll}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\begin{figure}
+	\caption{Código nos pinos do \acs{dac} na simulação da entidade do topo.}
+	\label{fig:tb_dds}
+	\includegraphics[width=\textwidth]{./figuras/tb_DDS_saida}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\section{Simulação da placa analógica}
+
+A Tabela~\ref{tab:spice} compara as faixas de tensão e corrente obtidas na simulação do circuito analógico com os valores calculados no Capítulo~\ref{cap:metodologia}. A corrente de escala completa, a excursão do conversor corrente-tensão e o ganho de \(-1{,}2\) do estágio de ganho, na posição simulada do potenciômetro, coincidem com o cálculo.
+
+\begin{table}
+	\caption{Faixas obtidas na simulação do circuito analógico.}
+	\label{tab:spice}
+	\begin{tabular}{l c c}\toprule
+		Ponto do circuito & Simulado & Calculado\\\midrule
+		\(I_{OUT}\) e \(\overline{I_{OUT}}\) & 0 a 1,99~mA & 0 a 1,992~mA\\
+		Conversor corrente-tensão & \(-1{,}98\) a \(+1{,}99\)~V & \(-1{,}98\) a \(+1{,}99\)~V\\
+		Saída do estágio de ganho & \(-2{,}39\) a \(+2{,}37\)~V & ganho de \(-1{,}2\)\\
+		Saída do filtro e do \eng{buffer} & \(-2{,}39\) a \(+2{,}37\)~V & ganho unitário\\\bottomrule
+	\end{tabular}
+	\legend{Fonte~---~Autoria própria.}
+\end{table}
+
+A forma de onda simulada, porém, não reproduz o seno. Na simulação, as fontes dos bits foram ligadas ao DAC0800 em ordem invertida: o \ac{lsb} da amostra entrou na entrada B1, que é o \ac{msb} do conversor. A saída simulada tem correlação de \(-0{,}9999\) com o código de bits espelhados e de \(-0{,}03\) com o código do seno. Na placa, a ligação está correta. \pendente{Corrigir a ordem dos bits na simulação, refazê-la e incluir a forma de onda de saída.}
+
+\section{Ensaios em bancada}
+
+A Figura~\ref{fig:bancada} mostra a montagem de bancada: a DE2-115, a placa analógica ligada ao conector de expansão, as fontes de \(\pm15\)~V e +10~V e o osciloscópio. Uma medição preliminar da placa analógica, feita em 3 de setembro de 2026 com uma versão anterior do código do \ac{fpga}, é mostrada na Figura~\ref{fig:medicao}: um seno de 100,0~Hz com 5,08~V de pico a pico. \pendente{Confirmar a versão do código usada nessa medição.}
+
+\begin{figure}
+	\caption{Montagem de bancada.}
+	\label{fig:bancada}
+	\includegraphics[width=0.8\textwidth]{./figuras/bancada}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\begin{figure}
+	\caption{Medição preliminar na saída da placa analógica: seno de 100,0~Hz com 5,08~V de pico a pico.}
+	\label{fig:medicao}
+	\includegraphics[width=0.5\textwidth]{./figuras/medicao}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\pendente{Ensaios com o código final: controle pela interface gráfica; frequência medida em vários pontos da faixa; as quatro formas de onda e o envio de uma tabela arbitrária; amplitude e ajuste de ganho; e espectro da saída, para comparar o maior espúrio com a Figura~\ref{fig:espectros}.}
