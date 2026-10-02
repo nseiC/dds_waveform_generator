@@ -25,3 +25,11 @@ transcript
 vsim.wlf
 *.wlf
 modelsim.ini
+
+# Python (GUI)
+.venv/
+__pycache__/
+*.pyc
+
+# Platform Designer (estado do editor)
+.qsys_edit/
