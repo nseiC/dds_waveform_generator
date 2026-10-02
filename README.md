@@ -152,8 +152,8 @@ $$
 - [x] 16 testbenches no GHDL, do bloco ao top-level, com figuras para o texto
 - [x] Interface em Python com o protocolo do Virtual JTAG
 - [x] Placa analógica projetada, fabricada e medida na bancada
-- [x] Simulação do front-end analógico no LTspice
-- [ ] Ordem dos bits do DAC na simulação do LTspice ([ver aviso](analog/README.md#resultados))
+- [x] Simulação do front-end analógico no LTspice: seno de 1 kHz com THD de −70,9 dBc
+- [x] Estágio de saída classe AB retirado (distorção); a saída é o seguidor de tensão
 - [ ] Validação completa na placa: controle pela GUI, medidas de frequência e espectro
 
 O detalhe de cada parte está nos READMEs do [FPGA](fpga/README.md#estado-atual), da

@@ -11,6 +11,7 @@ As figuras dos testbenches saem de fpga/testbenches/gerar_figuras.py; rode-o ant
 
 from __future__ import annotations
 
+import gzip
 import math
 import re
 import shutil
@@ -25,6 +26,7 @@ from matplotlib import patches, ticker  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "overleaf" / "figuras"
+SPICE = ROOT / "analog" / "simulation" / "resultados"  # exportações do LTspice (.txt.gz)
 
 INK = "#12233A"
 ACCENT = "#E8711A"
@@ -300,7 +302,7 @@ def fig_sistema():
     caixa(ax, 13.45, 5.6, 2.2, 1.5, "conversor\ncorrente-\ntensão", fs=7.5)
     caixa(ax, 13.45, 3.2, 2.2, 1.5, "filtro de\nreconstrução", fs=7.5)
     caixa(ax, 10.8, 3.2, 2.2, 1.5, "ganho\najustável", fs=7.5)
-    caixa(ax, 10.8, 0.9, 2.2, 1.5, "buffer e\npush-pull", fs=7.5)
+    caixa(ax, 10.8, 0.9, 2.2, 1.5, "buffer\n(seguidor)", fs=7.5)
     seta(ax, 9.7, 6.35, 10.8, 6.35, "8 bits", dy=0.1, fs=7)
     seta(ax, 13.0, 6.35, 13.45, 6.35)
     seta(ax, 14.55, 5.6, 14.55, 4.7)
@@ -406,6 +408,68 @@ def fig_filtro():
     salvar(fig, "filtro")
 
 
+# ---------------------------------------------------------------------------
+# simulação da placa analógica (LTspice)
+# ---------------------------------------------------------------------------
+
+def ler_spice():
+    with gzip.open(SPICE / "WAVEFORMS.txt.gz", "rt") as fh:
+        onda = np.loadtxt(fh, skiprows=1)
+    f, dif, fil = [], [], []
+    with gzip.open(SPICE / "WAVEFORMS_FFT.txt.gz", "rt", encoding="latin-1") as fh:
+        next(fh)
+        for linha in fh:
+            v = re.findall(r"\(([-+0-9.e]+)dB", linha)
+            if len(v) == 2:
+                f.append(float(linha.split()[0]))
+                dif.append(float(v[0]))
+                fil.append(float(v[1]))
+    return onda, np.array(f), np.array(dif), np.array(fil)
+
+
+def fig_spice(onda, f, dif, fil):
+    t, buf, vdif, vfil, vinv = onda[:, 0], onda[:, 1], onda[:, 2], onda[:, 3], onda[:, 4]
+    fig, (a, b) = plt.subplots(2, 1, figsize=(LARGURA, 4.6), gridspec_kw={"hspace": 0.55})
+    a.plot(t * 1e3, vdif, color=GRAY, lw=1.0, label="conversor corrente-tensão")
+    a.plot(t * 1e3, buf, color=ACCENT, lw=1.2, label="saída (após ganho, filtro e buffer)")
+    a.set_xlim(0, 5)
+    a.set_ylim(-4.2, 3)
+    a.set_xlabel("tempo (ms)")
+    a.set_ylabel("tensão (V)")
+    a.set_title("(a) seno de 1 kHz: cinco períodos", fontsize=8.5, loc="left")
+    a.legend(loc="lower center", frameon=False, ncol=2)
+    a.grid(color=GRID, lw=0.4)
+    virgula(a)
+    # zoom em uma subida da saída: degraus antes do filtro e sinal suavizado depois
+    z = np.where((buf[:-1] < 0) & (buf[1:] >= 0))[0][0]
+    t0 = t[z] - 6e-6
+    m = (t >= t0) & (t <= t0 + 12e-6)
+    b.plot((t[m] - t0) * 1e6, vinv[m] * 1e3, color=INK, lw=1.0, drawstyle="steps-post", label="antes do filtro")
+    b.plot((t[m] - t0) * 1e6, vfil[m] * 1e3, color=ACCENT, lw=1.3, label="depois do filtro")
+    b.set_xlim(0, 12)
+    b.set_xlabel("tempo (µs)")
+    b.set_ylabel("tensão (mV)")
+    b.set_title("(b) detalhe de uma subida: degraus de um código e o sinal filtrado", fontsize=8.5, loc="left")
+    b.legend(loc="upper left", frameon=False)
+    b.grid(color=GRID, lw=0.4)
+    virgula(b)
+    salvar(fig, "spice_tempo")
+
+    k1 = int(np.argmax(fil[1:200])) + 1
+    fig, ax = plt.subplots(figsize=(LARGURA, 3.0))
+    ax.semilogx(f[1:], dif[1:] - dif[k1], color=GRAY, lw=0.5, label="conversor corrente-tensão", rasterized=True)
+    ax.semilogx(f[1:], fil[1:] - fil[k1], color=ACCENT, lw=0.5, label="saída do filtro", rasterized=True)
+    for x, y, txt in [(6e3, -62, "harmônicas"), (1.024e6, -52, "1024$f$ ± $f$")]:
+        ax.annotate(txt, xy=(x, y), ha="center", fontsize=7.5, color=INK)
+    ax.set_xlim(200, f[-1])
+    ax.set_ylim(-160, 10)
+    ax.set_xlabel("frequência (Hz)")
+    ax.set_ylabel("dBc")
+    ax.grid(color=GRID, lw=0.4, which="major")
+    ax.legend(loc="lower left", frameon=False)
+    salvar(fig, "spice_fft")
+
+
 def main() -> None:
     estilo()
     OUT.mkdir(exist_ok=True)
@@ -417,6 +481,7 @@ def main() -> None:
     fig_hierarquia()
     fig_luts()
     fig_filtro()
+    fig_spice(*ler_spice())
     print(f"  (SFDR da simulação numérica: {sfdr:.1f} dBc)")
     print("Copiando:")
     tb = ROOT / "fpga" / "testbenches" / "figuras"

@@ -165,22 +165,46 @@ Por fim, o \eng{testbench} \cod{tb\_DDS} simula a entidade do topo, com o \ac{pl
 
 \section{Simulação da placa analógica}
 
-A Tabela~\ref{tab:spice} compara as faixas de tensão e corrente obtidas na simulação do circuito analógico com os valores calculados no Capítulo~\ref{cap:metodologia}. A corrente de escala completa, a excursão do conversor corrente-tensão e o ganho de \(-1{,}2\) do estágio de ganho, na posição simulada do potenciômetro, coincidem com o cálculo.
+A simulação no LTspice cobre 5~ms, ou cinco períodos do seno de 1~kHz produzido pelo \ac{vhdl}. A Figura~\ref{fig:spice_tempo}(a) mostra a tensão na saída do conversor corrente-tensão e na saída final, depois do ganho, do filtro e do \eng{buffer}; a inversão de fase entre as duas vem do amplificador inversor. A Tabela~\ref{tab:spice} compara os valores obtidos com os calculados no Capítulo~\ref{cap:metodologia}, e todos coincidem. A tensão correspondente ao código 128 não é exatamente zero: como \(I_{FS} = I_{REF} \cdot 255/256\), pela Equação~(\ref{eq:dac0800}), o código 128 dá \(I_{OUT} - \overline{I_{OUT}} = I_{REF}/256\), ou 7,81~mV na saída do conversor.
 
 \begin{table}
-	\caption{Faixas obtidas na simulação do circuito analógico.}
+	\caption{Valores obtidos na simulação do circuito analógico.}
 	\label{tab:spice}
 	\begin{tabular}{l c c}\toprule
-		Ponto do circuito & Simulado & Calculado\\\midrule
-		\(I_{OUT}\) e \(\overline{I_{OUT}}\) & 0 a 1,99~mA & 0 a 1,992~mA\\
-		Conversor corrente-tensão & \(-1{,}98\) a \(+1{,}99\)~V & \(-1{,}98\) a \(+1{,}99\)~V\\
-		Saída do estágio de ganho & \(-2{,}39\) a \(+2{,}37\)~V & ganho de \(-1{,}2\)\\
-		Saída do filtro e do \eng{buffer} & \(-2{,}39\) a \(+2{,}37\)~V & ganho unitário\\\bottomrule
+		Grandeza & Simulado & Calculado\\\midrule
+		Corrente de escala completa do \acs{dac} & 1,99~mA & 1,992~mA\\
+		Excursão do conversor corrente-tensão & \(-1{,}976\) a \(+1{,}991\)~V & \(-1{,}977\) a \(+1{,}992\)~V\\
+		Tensão do código 128 no conversor & 7,81~mV & 7,81~mV\\
+		Ganho do estágio inversor & \(-1{,}19999\) & \(-1{,}2\)\\
+		Excursão da saída & 4,760~V de pico a pico & 4,763~V de pico a pico\\
+		Frequência & 1,000~kHz & 999,998~Hz\\
+		Atraso do filtro em 1~kHz & 321~ns & 317~ns\\\bottomrule
 	\end{tabular}
 	\legend{Fonte~---~Autoria própria.}
 \end{table}
 
-A forma de onda simulada, porém, não reproduz o seno. Na simulação, as fontes dos bits foram ligadas ao DAC0800 em ordem invertida: o \ac{lsb} da amostra entrou na entrada B1, que é o \ac{msb} do conversor. A saída simulada tem correlação de \(-0{,}9999\) com o código de bits espelhados e de \(-0{,}03\) com o código do seno. Na placa, a ligação está correta. \pendente{Corrigir a ordem dos bits na simulação, refazê-la e incluir a forma de onda de saída.}
+A Figura~\ref{fig:spice_tempo}(b) mostra o efeito do filtro de reconstrução em uma subida do seno. Antes do filtro, a saída é uma escada: em 1~kHz, cada código dura cerca de 1~\(\mu\)s e cada degrau tem 18,75~mV, um \ac{lsb} multiplicado pelo ganho. Depois do filtro, as transições ficam suavizadas e atrasadas em 321~ns. Esse atraso concorda com o atraso de grupo de um filtro de segunda ordem em baixa frequência, \(1/(Q\,\omega_0) \approx 317\)~ns, e não depende da forma de onda.
+
+\begin{figure}
+	\caption{Simulação da placa analógica para o seno de 1~kHz: (a) saídas do conversor corrente-tensão e do circuito; (b) detalhe de uma subida, antes e depois do filtro.}
+	\label{fig:spice_tempo}
+	\includegraphics[width=\textwidth]{./figuras/spice_tempo}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+A Figura~\ref{fig:spice_fft} mostra o espectro dos dois pontos, calculado pelo LTspice com resolução de 200~Hz e normalizado pela componente de 1~kHz. Aparecem três grupos de componentes, todos previstos no Capítulo~\ref{cap:teoria}:
+\begin{description}
+	\item[Harmônicas] --- principalmente ímpares, com a maior, a 9.ª, em \(-73{,}4\)~dBc, e distorção harmônica total, da 2.ª à 10.ª, de \(-70{,}9\)~dBc. Elas vêm da quantização em 8~bits: como o período tem exatamente 1024 amostras, o erro de quantização se repete a cada período e se concentra em harmônicas, em vez de se espalhar como ruído. O filtro não as altera, pois estão dentro da banda passante;
+	\item[Imagens da tabela] --- em \(1024 f_{out} \pm f_{out}\) (1,023 e 1,025~MHz). Em 1~kHz, a saída é uma escada de 1024 degraus por período, atualizada a 1,024~MHz, e a Equação~(\ref{eq:zoh}) passa a valer com essa taxa no lugar de \(f_{clk}\). Essa é a maior componente indesejada: \(-60{,}5\)~dBc antes do filtro, em acordo com o limite de \(6{,}02\,P\) da Equação~(\ref{eq:sfdr}), e \(-67{,}0\)~dBc depois, pois o filtro atenua cerca de 6~dB em \(f_0\), como esperado para \(Q = 0{,}5\);
+	\item[Imagens do clock] --- em \(f_{clk} \pm f_{out}\), em \(-96\)~dBc antes do filtro e \(-119\)~dBc depois, já próximas do piso numérico da simulação. Nesse ponto, a envoltória sinc da Equação~(\ref{eq:zoh}) vale cerca de \(f_{out}/f_{clk}\), ou \(-80\)~dB, e as transições do \acs{dac} e a banda limitada dos amplificadores atenuam um pouco mais.
+\end{description}
+
+\begin{figure}
+	\caption{Espectro da simulação da placa analógica para o seno de 1~kHz, antes e depois do filtro de reconstrução.}
+	\label{fig:spice_fft}
+	\includegraphics[width=\textwidth]{./figuras/spice_fft}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
 
 \section{Ensaios em bancada}
 

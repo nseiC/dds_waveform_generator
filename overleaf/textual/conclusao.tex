@@ -6,12 +6,15 @@ O projeto digital foi organizado em blocos encapsulados, com uma entidade por fu
 
 O projeto ocupa menos de 1\% dos elementos lógicos do \ac{fpga} e opera com folga de tempo de dez vezes no clock de 10~MHz. A simulação numérica do espectro confirmou que, com tabela de 1024 posições, o maior espúrio de truncamento fica em cerca de \(-60\)~dBc. Assim, o desempenho espectral é limitado principalmente pela resolução de 8~bits do DAC0800.
 
+Na simulação da placa analógica, a saída reproduziu o seno gerado pelo \ac{vhdl} com a amplitude, o ganho e o atraso calculados. A distorção harmônica total foi de \(-70{,}9\)~dBc, e a maior componente indesejada, em \(-67\)~dBc após o filtro, é a imagem associada à resolução da tabela, de acordo com o limite de \(6{,}02\,P\). O estágio de saída classe AB, previsto no projeto da placa, foi retirado por distorção, e a saída passou a ser tomada do seguidor de tensão.
+
 \pendente{Completar com os resultados dos ensaios em bancada com o código final.}
 
 Como trabalhos futuros, propõem-se:
 \begin{itemize}
 	\item realizar os ensaios em bancada com o código final, medindo a frequência ao longo da faixa e o espectro da saída, para comparar o maior espúrio com o previsto;
-	\item corrigir a ordem dos bits na simulação SPICE da placa analógica e comparar a forma de onda simulada com a medida;
+	\item comparar a forma de onda e o espectro medidos na placa com os da simulação SPICE;
+	\item projetar um estágio de saída com maior capacidade de corrente e baixa distorção, em substituição ao classe AB retirado;
 	\item substituir o DAC0800 por um conversor de maior resolução e menor tempo de acomodação, aproveitando a margem de tempo do \ac{fpga} para elevar o clock e a frequência máxima;
 	\item usar um filtro de reconstrução de ordem mais alta, para atenuar mais as imagens com a mesma banda passante;
 	\item explorar a simetria do seno para reduzir a tabela, liberando memória para tabelas maiores ou para mais formas de onda;

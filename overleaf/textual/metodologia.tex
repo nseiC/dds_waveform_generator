@@ -188,9 +188,11 @@ que vai de \(-1{,}99\)~V, no código 0, a \(+1{,}99\)~V, no código 255. Em segu
 	\legend{Fonte~---~Autoria própria.}
 \end{figure}
 
-O ganho é ajustado por um amplificador inversor com um potenciômetro de 10~k\(\Omega\) (VR1). Por fim, um seguidor de tensão aciona um par complementar BC847 e BC857, polarizado por dois diodos LL4148 em classe AB, que entrega o sinal ao conector de saída J7. Os quatro amplificadores são as quatro seções de um TL074.
+O ganho é ajustado por um amplificador inversor com um potenciômetro de 10~k\(\Omega\) (VR1). Por fim, um seguidor de tensão entrega o sinal ao conector de saída J7. Os quatro amplificadores são as quatro seções de um TL074.
 
-A placa foi projetada no Altium Designer e fabricada; a Figura~\ref{fig:placa} mostra a placa montada. O circuito foi simulado no LTspice com um macromodelo comportamental do DAC0800, escrito a partir das características típicas da folha de dados \cite{ti2013}: referência, divisão da corrente entre as saídas, limiar lógico, tempo de comutação de 70~ns e limites de conformidade das saídas. Os estímulos das entradas digitais são fontes lineares por partes geradas a partir da simulação do \ac{vhdl}, para uma senoide de 1~kHz.
+A placa foi desenhada com mais um estágio depois do seguidor: um par complementar BC847 e BC857, polarizado por dois diodos LL4148 em classe AB, para aumentar a corrente de saída. Esse estágio foi retirado por apresentar distorção e resultados inesperados nos ensaios, e a saída passou a ser tomada diretamente do seguidor. \pendente{Descrever a distorção observada no estágio classe AB.}
+
+A placa foi projetada no Altium Designer e fabricada; a Figura~\ref{fig:placa} mostra a placa montada. O circuito, sem o estágio classe AB, foi simulado no LTspice com um macromodelo comportamental do DAC0800, escrito a partir das características típicas da folha de dados \cite{ti2013}: referência, divisão da corrente entre as saídas, limiar lógico, tempo de comutação de 70~ns e limites de conformidade das saídas. Os estímulos das entradas digitais são fontes lineares por partes geradas a partir da simulação do \ac{vhdl}, para uma senoide de 1~kHz.
 
 \begin{figure}
 	\caption{Placa analógica montada, com o DAC0800 (IC1), o TL074 (U1) e o potenciômetro de ganho (VR1).}

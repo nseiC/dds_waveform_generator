@@ -26,15 +26,15 @@ flowchart LR
     DAC --> IV["Conversor I→V<br/>diferencial<br/>U1A"]
     IV --> LPF["Filtro de reconstrução<br/>Sallen-Key 2ª ordem<br/>U1B"]
     LPF --> GAIN["Ganho ajustável<br/>inversor com VR1<br/>U1C"]
-    GAIN --> BUF["Buffer U1D +<br/>push-pull BC847/BC857"]
+    GAIN --> BUF["Buffer<br/>U1D"]
     BUF --> OUT(["Saída J7"])
     REF["+10 V / 5 kΩ<br/>I_REF = 2 mA"] -.-> DAC
 ```
 
 A ordem acima é a da placa (esquemático `OUTPUT_GEN.SchDoc`). Na simulação o ganho vem antes
-do filtro, o potenciômetro é o resistor de entrada do inversor em vez de ficar na
-realimentação, e a saída é só um buffer, sem o push-pull. Para sinais dentro da faixa linear,
-a ordem do filtro e do ganho não muda a resposta.
+do filtro e o potenciômetro é o resistor de entrada do inversor, em vez de ficar na
+realimentação. Para sinais dentro da faixa linear, a ordem do filtro e do ganho não muda a
+resposta.
 
 ## Blocos
 
@@ -98,9 +98,11 @@ Na placa, VR1 fica na realimentação do U1C, e o ganho é proporcional à resis
 
 ### 5. Saída
 
-Na placa, o U1D é um seguidor de tensão que aciona um par complementar BC847/BC857, polarizado
-por dois diodos LL4148 (classe AB), para fornecer mais corrente na saída J7. Na simulação, a
-saída é só o seguidor.
+O U1D é um seguidor de tensão que entrega o sinal à saída J7.
+
+A placa foi desenhada com um par complementar BC847/BC857 depois do seguidor, polarizado por
+dois diodos LL4148 (classe AB), para aumentar a corrente de saída. Esse estágio foi retirado por
+distorção e resultados inesperados nos ensaios, e a saída passou a ser tomada do seguidor.
 
 ### Alimentação e conectores
 
@@ -119,12 +121,13 @@ A pasta `simulation/` tem o front-end completo no LTspice 26, alimentado pelos c
 
 | Arquivo | Conteúdo |
 |---|---|
-| `TCC.asc` | Esquemático: DAC0800, conversor I→V, ganho, filtro e buffer (`.tran 5m`) |
+| `TCC.asc` | Esquemático: DAC0800, conversor I→V, ganho, filtro e buffer (`.tran 5m`), com os nós `DIFFERENTIAL`, `INVERTER`, `FILTERED` e `BUFFERED` |
 | `TCC.net` | Netlist exportada pelo LTspice |
 | `DAC0800.lib`, `DAC0800.asy` | Macromodelo comportamental do DAC0800, feito a partir do datasheet da TI (SNAS538C), e o símbolo |
 | `SOURCES.lib`, `sources.asy` | Subcircuito `sources`: os 8 bits (PWL), ±15 V e +10 V |
 | `FONTES.asc` | Esquemático das fontes que deu origem ao subcircuito `sources` |
 | `pwl/` | PWL de cada bit, código por amostra e saída de um DAC ideal; detalhes em [`pwl/LEIAME.txt`](simulation/pwl/LEIAME.txt) |
+| `resultados/` | Formas de onda (`WAVEFORMS.txt.gz`) e FFT (`WAVEFORMS_FFT.txt.gz`) exportadas do LTspice; as figuras do TCC saem delas |
 
 Estímulo: f = 1000 Hz no DDS (FTW = 429 496, ou 999,9983 Hz), 50 001 amostras a 10 MHz
 (5 períodos), níveis de 0 e 3,3 V com bordas de 2 ns.
@@ -159,22 +162,25 @@ de ~78 MB, `.fft`, `.log`) não vão para o Git.
 
 ### Resultados
 
-Faixas medidas no `TCC.raw` da simulação de 2 out. 2026:
+Simulação de 5 ms (cinco períodos do seno de 1 kHz vindo do VHDL):
 
-| Nó | Simulado | Esperado |
+| Grandeza | Simulado | Calculado |
 |---|---|---|
-| I<sub>OUT</sub> e I<sub>OUT</sub>B do DAC | 0 a 1,99 mA | 0 a I<sub>FS</sub> = 1,992 mA |
-| Conversor I→V | −1,98 a +1,99 V | −1,98 a +1,99 V (códigos 1 a 255) |
-| Saída do ganho | −2,39 a +2,37 V | × (−1,2) |
-| Saída final (após filtro e buffer) | −2,39 a +2,37 V | ganho 1 no filtro |
+| Corrente de escala completa do DAC | 1,99 mA | 1,992 mA |
+| Conversor I→V (`DIFFERENTIAL`) | −1,976 a +1,991 V | −1,977 a +1,992 V (códigos 1 a 255) |
+| Código 128 no conversor | 7,81 mV | I<sub>REF</sub>/256 · 1 kΩ = 7,81 mV |
+| Ganho do inversor (`INVERTER`) | −1,19999 | −1,2 |
+| Saída (`FILTERED`, `BUFFERED`) | 4,760 V de pico a pico | 4,763 V de pico a pico |
+| Frequência | 1,000 kHz | 999,998 Hz |
+| Atraso do filtro | 321 ns | 1/(Q·ω₀) = 317 ns |
 
-> [!WARNING]
-> **Ordem dos bits invertida na simulação.** No DAC0800, B1 é o MSB. No `TCC.asc`, porém, o
-> nó A1 (`bit0.txt`, o LSB) vai em B1, e assim por diante até A8 (`bit7.txt`, o MSB) em B8.
-> O DAC simulado recebe o código com os bits espelhados: as amplitudes e os ganhos acima
-> conferem, mas a forma de onda não é o seno. A saída simulada tem correlação de −0,9999 com o
-> código espelhado e de −0,03 com o código do seno. A placa está certa (J1 liga DB7 em B1).
-> Na simulação, basta ligar A8 em B1 até A1 em B8, ou trocar a ordem dos arquivos no `SOURCES.lib`.
+No espectro (FFT do LTspice, resolução de 200 Hz):
+
+| Componente | Antes do filtro | Depois do filtro |
+|---|---|---|
+| Distorção harmônica total, 2ª a 10ª (quase só ímpares, da quantização em 8 bits) | −70,9 dBc | −70,9 dBc |
+| Imagens da tabela em 1024·f ± f (1,023 e 1,025 MHz), o limite de 6,02·P | −60,5 dBc | −67,0 dBc |
+| Imagens do clock em 10 MHz ± 1 kHz | −96 dBc | −119 dBc (perto do piso numérico) |
 
 ## Placa (Altium Designer)
 
@@ -184,7 +190,7 @@ O projeto `layout/TCC.PrjPcb` tem dois documentos: o esquemático `OUTPUT_GEN.Sc
 | Arquivo | Conteúdo |
 |---|---|
 | `TCC.PrjPcb` | Projeto do Altium |
-| `OUTPUT_GEN.SchDoc` | Esquemático da placa: DAC0800LCN, TL074, VR1, BC847/BC857 e conectores |
+| `OUTPUT_GEN.SchDoc` | Esquemático da placa: DAC0800LCN, TL074, VR1, conectores e o par BC847/BC857, retirado da montagem |
 | `PCB1.PcbDoc` | Layout da placa fabricada |
 | `Project Outputs for TCC/` | Gerbers, furação e relatórios; o pacote para fabricação é `gerber.zip` (10 ago. 2026) |
 | `TL074CPWRG4.IntLib` | Biblioteca integrada do TL074 |

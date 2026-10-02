@@ -128,7 +128,3 @@ O filtro Sallen-Key é uma topologia ativa de segunda ordem com um único amplif
 	f_0 = \frac{1}{2\pi\sqrt{R_1 R_2 C_1 C_2}}, \qquad Q = \frac{\sqrt{R_1 R_2 C_1 C_2}}{C_2\,(R_1 + R_2)}.
 \end{equation}
 Com resistores iguais e capacitores iguais, \(Q = 0{,}5\): o filtro tem dois polos reais coincidentes em \(f_0\), sem sobressinal na resposta ao degrau, e a atenuação de 3~dB ocorre em \(f_0\sqrt{\sqrt{2}-1} \approx 0{,}64\,f_0\).
-
-\subsection{Estágio de saída}
-
-Amplificadores operacionais de uso geral fornecem correntes de saída limitadas. Para alimentar cargas de impedância mais baixa, a saída pode ser reforçada por um par complementar de transistores bipolares em configuração \eng{push-pull}. Polarizando as bases com dois diodos, os transistores ficam no limiar de condução sem sinal (classe AB), o que reduz a distorção de cruzamento \cite{sedra2015}.
