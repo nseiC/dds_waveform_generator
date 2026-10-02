@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 import queue
+import sys
 import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -18,8 +19,21 @@ from dds_jtag import (
 
 ANY_CABLE = "(automático)"
 HERE = os.path.dirname(os.path.abspath(__file__))
-LUT_DIR = os.path.join(HERE, "..", "fpga", "lut")
-ICON_PATH = os.path.join(HERE, "..", "docs", "logo", "icon.png")
+# No executável (build_exe.sh), o ícone e as tabelas .mif vão dentro do arquivo, em sys._MEIPASS
+BUNDLE = getattr(sys, "_MEIPASS", None)
+EXE_DIR = os.path.dirname(os.path.abspath(sys.executable)) if BUNDLE else HERE
+
+
+def _first_existing(*paths: str) -> str:
+    return next((p for p in paths if os.path.exists(p)), paths[-1])
+
+
+# a pasta do repositório tem prioridade: rodando de GUI/ ou de GUI/dist/
+LUT_DIR = _first_existing(os.path.join(HERE, "..", "fpga", "lut"),
+                          os.path.join(EXE_DIR, "..", "..", "fpga", "lut"),
+                          os.path.join(BUNDLE or HERE, "lut"))
+ICON_PATH = _first_existing(os.path.join(HERE, "..", "docs", "logo", "icon.png"),
+                            os.path.join(BUNDLE or HERE, "icon.png"))
 
 
 class Worker(threading.Thread):
@@ -282,7 +296,7 @@ class App(tk.Tk):
         rows = (
             ("f_clk", f"{F_CLK / 1e6:g} MHz"),
             ("Acumulador", f"{N_ACC} bits"),
-            ("Δf", f"{F_CLK / 2 ** N_ACC * 1e3:.3f} mHz"),
+            ("Resolução", f"{F_CLK / 2 ** N_ACC * 1e3:.3f} mHz"),
             ("LUT", f"{LUT_DEPTH} × {LUT_WIDTH} bits"),
             ("Faixa", f"0 – {FREQ_MAX} Hz"),
         )

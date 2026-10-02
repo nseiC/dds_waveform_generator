@@ -500,6 +500,8 @@ def main() -> None:
     for nome in RTL:
         shutil.copyfile(ROOT / "fpga" / "testbenches" / "rtl" / f"rtl_{nome}.png", OUT / f"rtl_{nome}.png")
         print(f"  figuras/rtl_{nome}.png")
+    shutil.copyfile(ROOT / "GUI" / "figuras" / "interface.png", OUT / "interface.png")
+    print("  figuras/interface.png")
     for orig, dest in FOTOS.items():
         shutil.copyfile(ROOT / "analog" / "figuras" / orig, OUT / dest)
         print(f"  figuras/{dest}")

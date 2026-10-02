@@ -110,8 +110,9 @@ $$
    (chave RUN/PROG em **RUN**). Detalhes em [fpga/README.md](fpga/README.md#compilar-e-gravar).
 2. **Placa**: ligue o barramento de 8 bits do GPIO no J1 e alimente com ±15 V e +10 V
    ([analog/README.md](analog/README.md#alimentação-e-conectores)).
-3. **PC**: feche o Programmer e rode `cd GUI && ./run.sh`. Conecte, escolha a frequência e a forma
-   de onda. Para a arbitrária, abra `fpga/lut/ecg_1024x8.mif` e clique em *Enviar ao FPGA*
+3. **PC**: feche o Programmer e abra a interface pelo atalho *DDS Waveform Generator* (criado por
+   `GUI/build_exe.sh` e `GUI/install_launcher.sh`) ou com `cd GUI && ./run.sh`. Conecte, escolha a
+   frequência e a forma de onda. Para a arbitrária, abra `fpga/lut/ecg_1024x8.mif` e clique em *Enviar ao FPGA*
    ([GUI/README.md](GUI/README.md)).
 
 <details>

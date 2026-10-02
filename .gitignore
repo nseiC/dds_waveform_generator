@@ -45,6 +45,8 @@ modelsim.ini
 
 # Python (GUI)
 .venv/
+GUI/build/
+GUI/dist/
 __pycache__/
 *.pyc
 

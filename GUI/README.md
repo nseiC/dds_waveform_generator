@@ -13,12 +13,30 @@ hardware além do cabo de gravação da placa.
 - Console com o log do `quartus_stp` e um prompt Tcl para depurar
 - Tema escuro ou claro, nas cores do projeto
 
+<p align="center">
+  <img src="figuras/interface.png" alt="Janela da interface: conexão JTAG, LUT arbitrária, frequência, forma de onda, gráfico da LUT e console" width="100%">
+</p>
+
 > [!NOTE]
 > Os dois lados do protocolo estão prontos. No FPGA, o caminho do JTAG até a saída do DAC passa
 > nos testbenches, inclusive o envio de uma LUT inteira (`tb_system`). Falta validar na placa
 > ([estado da parte digital](../fpga/README.md#estado-atual)).
 
 ## Começo rápido
+
+### Executável e atalho (sem terminal)
+
+```bash
+GUI/build_exe.sh          # gera GUI/dist/dds-waveform-generator (uma vez, ~20 s)
+GUI/install_launcher.sh   # atalho "DDS Waveform Generator" no menu e na área de trabalho
+```
+
+O `build_exe.sh` usa o PyInstaller para empacotar a interface num arquivo único, que já traz o
+Python, o Tkinter, o ícone e as tabelas `.mif`; ele roda sem o `.venv` e pode ser copiado para
+outra máquina Linux (x86-64) que tenha o Quartus. Depois do `install_launcher.sh`, a interface
+abre com dois cliques no ícone. Se o executável não existir, o atalho usa o `run.sh`.
+
+### Pelo terminal
 
 ```bash
 cd GUI
@@ -43,6 +61,8 @@ automaticamente em `~/intelFPGA_lite/18.1/quartus` ou pela variável `QUARTUS_RO
 |---|---|
 | `dds_jtag/` | Biblioteca: `DdsJtag`, `list_cables`, `load_lut`, `generate_lut`, `tuning_word`, ... |
 | `gui.py`, `run.sh` | Interface gráfica (Tkinter) e o script que a abre com o Python do `.venv` |
+| `build_exe.sh`, `install_launcher.sh` | Geram o executável (`dist/`) e o atalho no menu e na área de trabalho |
+| `figuras/` | Captura de tela da interface |
 | `theme.py` | Identidade visual da interface: cores do logo, fontes e estilos ttk |
 | `exemplo.py` | Uso da biblioteca em script, sem a GUI |
 | `udev/51-usbblaster.rules` | Permissão de acesso ao USB-Blaster no Linux |

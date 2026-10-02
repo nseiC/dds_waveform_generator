@@ -167,7 +167,16 @@ Os blocos do controle são verificados com um modelo de comportamento do Virtual
 
 A interface gráfica foi escrita em Python 3.12, com a biblioteca Tkinter, e usa apenas a biblioteca padrão da linguagem. Ela mantém aberto um processo do \cod{quartus\_stp} e envia a ele comandos Tcl: trava o acesso ao \ac{jtag}, desloca a instrução uma vez e o registrador de dados uma vez para cada valor, e libera o acesso. Uma \eng{thread} separada executa os comandos em ordem e devolve os resultados por uma fila de eventos, de modo que a janela não trava durante o envio de uma tabela, que exige 1024 deslocamentos.
 
-A interface permite escolher a frequência, mostrando a palavra de sintonia calculada pela Equação~(\ref{eq:ftw}), e a forma de onda; carregar a tabela arbitrária de um arquivo \ac{mif} ou de um arquivo de texto com 1024 valores, ou gerá-la a partir de formas prontas; visualizar a tabela antes do envio; e acompanhar as mensagens do \cod{quartus\_stp} em um console. \pendente{Inserir uma captura de tela da interface.}
+A interface permite escolher a frequência, mostrando a palavra de sintonia calculada pela Equação~(\ref{eq:ftw}), e a forma de onda; carregar a tabela arbitrária de um arquivo \ac{mif} ou de um arquivo de texto com 1024 valores, ou gerá-la a partir de formas prontas; visualizar a tabela antes do envio; e acompanhar as mensagens do \cod{quartus\_stp} em um console. A Figura~\ref{fig:interface} mostra a interface: no alto, a conexão \acs{jtag} e a carga da tabela arbitrária; à esquerda, a frequência, com a palavra de sintonia correspondente, a forma de onda e os parâmetros do sistema; ao centro, o gráfico da tabela arbitrária; e, abaixo, o console.
+
+Para dispensar o terminal, a interface foi empacotada com o PyInstaller em um executável único, que já contém o Python, o Tkinter, o ícone e as tabelas \ac{mif}, e um atalho no menu de aplicativos a abre com dois cliques. Ela depende apenas do Quartus instalado, de onde vem o \cod{quartus\_stp}.
+
+\begin{figure}
+	\caption{Interface gráfica de controle do gerador.}
+	\label{fig:interface}
+	\includegraphics[width=\textwidth]{./figuras/interface}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
 
 \section{Placa analógica}
 
