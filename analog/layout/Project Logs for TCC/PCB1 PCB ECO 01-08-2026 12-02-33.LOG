@@ -1,0 +1,28 @@
+Added Component: Designator=IC2(DIP794W56P254L1905H432Q16N)
+Add component (AddParameter): Name = "Arrow Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Arrow Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Datasheet Link"; Value = "https://www.ti.com/lit/ds/symlink/dac0800.pdf"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Design Item ID"; Value = "DAC0800LCN"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Height"; Value = "4.318mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Name"; Value = "Texas Instruments"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Part_Number"; Value = "DAC0800LCN"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Part Number"; Value = "926-DAC0800LCN"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Price/Stock"; Value = "https://www.mouser.co.uk/ProductDetail/Texas-Instruments/DAC0800LCN?qs=7X5t%252BdzoRHAPBuJSmu%2FDTw%3D%3D"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "RS Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "RS Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Source"; Value = "SamacSys.SchLib"; VariantName = "[No Variations]"
+Added Component: Designator=IC3(DIP794W56P254L1905H432Q16N)
+Add component (AddParameter): Name = "Arrow Part Number"; Value = "DAC0800LCN/NOPB"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Arrow Price/Stock"; Value = "https://www.arrow.com/en/products/dac0800lcnnopb/texas-instruments?region=nac"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Datasheet Link"; Value = "http://www.ti.com/lit/gpn/dac0800"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Design Item ID"; Value = "DAC0800LCN_NOPB"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Height"; Value = "4.318mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Name"; Value = "Texas Instruments"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Part_Number"; Value = "DAC0800LCN/NOPB"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Part Number"; Value = "926-DAC0800LCN/NOPB"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Price/Stock"; Value = "https://www.mouser.co.uk/ProductDetail/Texas-Instruments/DAC0800LCN-NOPB?qs=7X5t%252BdzoRHCCt2L20iUeVw%3D%3D"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "RS Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "RS Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Source"; Value = "SamacSys.SchLib"; VariantName = "[No Variations]"
+Added Member To Class: ClassName=OUTPUT_GEN Member=Component IC2 DAC0800LCN
+Added Member To Class: ClassName=OUTPUT_GEN Member=Component IC3 DAC0800LCN_NOPB
