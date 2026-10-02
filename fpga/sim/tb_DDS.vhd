@@ -7,7 +7,7 @@
 --   3. qOut segue a forma de onda escolhida por sel (comparada aos .mif), e a
 --      LUT arbitrária guarda o que foi escrito com wren.
 --
--- Rodar a partir da raiz do projeto (os .mif são lidos de ./lut/).
+-- Rodar a partir de fpga/ (os .mif são lidos de ./lut/); sim/run_ghdl.sh já faz isso.
 
 library ieee;
 use ieee.std_logic_1164.all;

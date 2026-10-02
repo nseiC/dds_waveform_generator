@@ -18,7 +18,7 @@ from dds_jtag import (
 
 ANY_CABLE = "(automático)"
 HERE = os.path.dirname(os.path.abspath(__file__))
-LUT_DIR = os.path.join(HERE, "..", "lut")
+LUT_DIR = os.path.join(HERE, "..", "fpga", "lut")
 ICON_PATH = os.path.join(HERE, "..", "docs", "logo", "icon.png")
 
 

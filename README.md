@@ -11,7 +11,7 @@ Trabalho de Conclusão de Curso: gerador de sinais por **Síntese Digital Direta
 implementado em VHDL na placa **Terasic DE2-115** (Intel Cyclone IV E EP4CE115F29C7),
 com saída por DAC paralelo de 8 bits e controle pelo PC via **Virtual JTAG**.
 
-Ferramentas: Quartus Prime 18.1 Lite, ModelSim-Altera, Python 3.12 (interface).
+Ferramentas: Quartus Prime 18.1 Lite, GHDL (simulação), Python 3.12 (interface).
 
 > Projeto em desenvolvimento — ver [Estado atual](#estado-atual).
 
@@ -61,14 +61,23 @@ f_out = M · f_clk / 2^N          Δf = f_clk / 2^N          SFDR (truncamento d
 
 ## Estrutura do repositório
 
+| Pasta | Conteúdo |
+|---|---|
+| [`fpga/`](fpga/) | Projeto Quartus: fontes VHDL, IPs, tabelas `.mif` e simulação |
+| [`GUI/`](GUI/) | Interface em Python para controlar o DDS pelo PC ([GUI/README.md](GUI/README.md)) |
+| [`docs/logo/`](docs/logo/) | Logo do projeto em SVG e PNG ([Identidade visual](#identidade-visual)) |
+
+### `fpga/`
+
 | Arquivo | Função |
 |---|---|
-| `DDS.vhd` | Top-level: PLL, acumulador de fase, LUT e Virtual JTAG |
+| `DDS.qpf`, `DDS.qsf` | Projeto Quartus |
+| `DDS.vhd` | Top-level: PLL, acumulador de fase, LUT e Virtual JTAG. Portas: `clk`, `rst`, `frequency` (18), `sel` (2), `wren`, `qIn` (8), `qOut` (8) |
 | `phase_accumulator.vhd` | Junta conversor de frequência, somador, registrador de fase e truncador |
 | `frequency_translator.vhd` | Converte frequência em Hz na FTW de 32 bits (multiplicação em ponto fixo) |
 | `word_adder.vhd` | Somador de 32 bits: FTW + fase atual |
 | `phase_register.vhd` | Registrador de fase de 32 bits, com reset assíncrono |
-| `truncator.vhd` | Seleciona 10 bits da fase para endereçar a LUT |
+| `truncator.vhd` | Seleciona os 10 bits mais significativos da fase (31..22) para endereçar a LUT |
 | `LUT.vhd` | Instancia as quatro memórias e o multiplexador de saída |
 | `out_mux.vhd` | Seleciona a forma de onda: `00` seno, `01` rampa, `10` sinc, `11` arbitrária |
 | `sine_LUT`, `saw_LUT`, `sinc_LUT` (`.vhd/.qip/.cmp`) | ROMs 1024 × 8 (`altsyncram`), inicializadas pelos `.mif` |
@@ -76,12 +85,9 @@ f_out = M · f_clk / 2^N          Δf = f_clk / 2^N          SFDR (truncamento d
 | `PLL` (`.vhd/.qip/.cmp/.ppf`) | ALTPLL: 50 MHz → 10 MHz |
 | `jtag.qsys`, `jtag/` | Virtual JTAG (Platform Designer): IR de 2 bits |
 | `lut/` | Tabelas `.mif` (abaixo) |
-| `GUI/` | Interface em Python para controlar o DDS pelo PC ([GUI/README.md](GUI/README.md)) |
-| `sim/` | Testbench do top-level (`tb_DDS.vhd`, VHDL-2008) e script para rodá-lo no GHDL (`run_ghdl.sh`) |
-| `DDS.qpf`, `DDS.qsf` | Projeto Quartus |
-| `docs/logo/` | Logo do projeto em SVG e PNG ([Identidade visual](#identidade-visual)) |
+| `sim/` | Testbench do top-level (`tb_DDS.vhd`, VHDL-2008) e script para rodá-lo no GHDL ([Simulação](#simulação)) |
 
-## Formas de onda (`lut/`)
+## Formas de onda (`fpga/lut/`)
 
 Todas com 1024 amostras de 8 bits em offset binary, zero do sinal no código 128.
 
@@ -118,31 +124,74 @@ a GUI em `GUI/` faz isso por trás. Detalhes e instalação em [GUI/README.md](G
 
 ## Como usar
 
-1. Abra `DDS.qpf` no Quartus 18.1 e compile (*Processing → Start Compilation*).
-   Se a pasta `jtag/` for apagada, regenere o Virtual JTAG abrindo `jtag.qsys` no
-   Platform Designer (*Generate HDL*, VHDL).
-2. Grave o `.sof` pelo Programmer (USB-Blaster, chave RUN/PROG da placa em **RUN**).
+1. Abra `fpga/DDS.qpf` no Quartus 18.1 e compile (*Processing → Start Compilation*).
+   Se a pasta `fpga/jtag/` for apagada, regenere o Virtual JTAG abrindo `fpga/jtag.qsys`
+   no Platform Designer (*Generate HDL*, VHDL).
+2. Grave o `.sof` (`fpga/output_files/DDS.sof`) pelo Programmer (USB-Blaster, chave
+   RUN/PROG da placa em **RUN**).
 3. Feche o Programmer e rode a interface: `cd GUI && ./run.sh`.
 4. Conecte, escolha a frequência e a forma de onda; para a arbitrária, abra
-   `lut/ecg_1024x8.mif` (ou outro arquivo) e clique em *Enviar ao FPGA*.
+   `fpga/lut/ecg_1024x8.mif` (ou outro arquivo) e clique em *Enviar ao FPGA*.
+
+## Simulação
+
+`fpga/sim/tb_DDS.vhd` simula o top-level completo, com o PLL e as memórias pelos
+modelos `altera_mf` do Quartus, e confere o resultado sozinho:
+
+- o PLL gera 10 MHz a partir do clock de 50 MHz;
+- o endereço da LUT avança f·1024/f_clk posições por clock e dá a volta na frequência
+  pedida (1 kHz, 100 kHz e 262 143 Hz, tolerância de 0,1 %);
+- `qOut` segue a forma de onda escolhida por `sel`, comparada amostra a amostra com os
+  `.mif`, e a RAM arbitrária devolve o que foi escrito com `wren`.
+
+```bash
+sudo apt install ghdl     # uma vez
+fpga/sim/run_ghdl.sh      # ~3,5 min; termina com "tb_DDS: OK"
+```
+
+Na primeira execução o script compila a biblioteca `altera_mf` em `fpga/sim/work/`
+(o Quartus é procurado em `~/intelFPGA_lite/18.1/quartus` ou em `QUARTUS_ROOTDIR`).
+O testbench usa nomes externos do VHDL-2008 para observar o endereço interno `bOut`.
+O ModelSim-Altera 18.1 para Linux é 32-bit e precisa das bibliotecas i386 do sistema;
+por isso a simulação foi montada no GHDL.
 
 ## Estado atual
 
 Implementado:
 
 - Acumulador de fase de 32 bits com conversão Hz → FTW em ponto fixo
-- PLL de 10 MHz
+- PLL de 10 MHz a partir do clock de 50 MHz, clock de todo o caminho de dados
 - ROMs de seno, rampa e sinc, RAM arbitrária e multiplexador de saída
 - Virtual JTAG instanciado no top-level
+- Testbench do top-level, passando no GHDL ([Simulação](#simulação))
 - Interface gráfica em Python, com envio de frequência, forma de onda e LUT
+
+Correções de ligação (outubro de 2026), confirmadas na síntese e na simulação:
+
+- `truncator`: o endereço da LUT passou a ser `fase(31..22)`; antes eram os 10 bits
+  menos significativos da fase.
+- `phase_accumulator`: a realimentação do somador agora é a saída do `phase_register`;
+  antes a entrada `feedback` não tinha fonte e o acumulador não acumulava.
+- `LUT`: `sinc_LUT` ligada em `qsinc` (havia dois drivers em `qsaw`) e `out_mux` com
+  mapeamento nomeado; antes `qsinc` ficava de fora e a saída `qout` sem conexão.
+- `DDS`: o PLL recebe a porta `clk` (antes um sinal sem fonte); o acumulador de fase
+  roda em `clk10MHz`, como a LUT e o cálculo da FTW; `sel` e `wren` viraram portas de
+  entrada.
+- Na síntese, o Quartus removia as memórias e o PLL (0 bits de memória). Agora ficam
+  as 4 memórias de 1024 × 8 e o PLL, e os avisos caíram de 90 para 10, todos do
+  Virtual JTAG ainda não ligado.
 
 Pendente:
 
 - Bloco de registradores do JTAG (deslocamento do DR em `tck`, atualização no
   Update-DR e sincronização para o domínio de 10 MHz)
-- Ligar frequência, `sel` e escrita da LUT arbitrária ao JTAG
-- Pinagem do DAC, do clock e do reset; restrições de timing (`.sdc`)
-- Validação em simulação (ModelSim) e na placa, com medidas de frequência e espectro
+- Ligar frequência, `sel` e escrita da LUT arbitrária ao JTAG; hoje são portas do
+  top-level, e `tdo` e `ir_out` do Virtual JTAG ainda não têm fonte
+- Endereço de escrita da LUT arbitrária: hoje a RAM é escrita no endereço da fase;
+  a escrita pelo JTAG vai precisar de um multiplexador de endereço
+- Pinagem do DAC, do clock e do reset (o `DDS.qsf` ainda não tem atribuições de pinos);
+  restrições de timing (`.sdc`)
+- Validação na placa, com medidas de frequência e espectro
 
 ## Identidade visual
 

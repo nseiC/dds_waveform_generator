@@ -2,7 +2,7 @@
 # Simula o top-level DDS com o GHDL (sim/tb_DDS.vhd).
 # Compila na primeira vez a biblioteca altera_mf do Quartus (modelos do PLL e das memórias).
 #
-# Uso: sim/run_ghdl.sh [--wave]     (--wave grava sim/work/tb_DDS.ghw para o GTKWave)
+# Uso: fpga/sim/run_ghdl.sh     (de qualquer pasta)
 # Variáveis: GHDL (padrão: ghdl), QUARTUS_ROOTDIR (padrão: ~/intelFPGA_lite/18.1/quartus)
 set -euo pipefail
 
@@ -12,11 +12,6 @@ QUARTUS_ROOTDIR="${QUARTUS_ROOTDIR:-$HOME/intelFPGA_lite/18.1/quartus}"
 SIM_LIB="$QUARTUS_ROOTDIR/eda/sim_lib"
 WORK="$ROOT/sim/work"
 FLAGS=(--std=08 -fsynopsys -frelaxed --workdir="$WORK" -P"$WORK")
-
-RUN_OPTS=(--ieee-asserts=disable-at-0)
-if [ "${1:-}" = "--wave" ]; then
-	RUN_OPTS+=(--wave="$WORK/tb_DDS.ghw")
-fi
 
 mkdir -p "$WORK"
 cd "$ROOT"	# os .mif são lidos de ./lut/
@@ -35,4 +30,4 @@ fi
 	out_mux.vhd LUT.vhd DDS.vhd \
 	sim/tb_DDS.vhd
 "$GHDL" -e "${FLAGS[@]}" -Wno-binding tb_DDS
-"$GHDL" -r "${FLAGS[@]}" -Wno-binding tb_DDS "${RUN_OPTS[@]}"
+"$GHDL" -r "${FLAGS[@]}" -Wno-binding tb_DDS --ieee-asserts=disable-at-0
