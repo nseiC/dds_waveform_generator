@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo/logo-dark.svg">
+    <img src="docs/logo/logo-light.svg" alt="DDS Waveform Generator — Síntese Digital Direta em FPGA Cyclone IV" width="720">
+  </picture>
+</p>
+
 # Gerador de formas de onda DDS em FPGA
 
 Trabalho de Conclusão de Curso: gerador de sinais por **Síntese Digital Direta (DDS)**
@@ -72,6 +79,7 @@ f_out = M · f_clk / 2^N          Δf = f_clk / 2^N          SFDR (truncamento d
 | `GUI/` | Interface em Python para controlar o DDS pelo PC ([GUI/README.md](GUI/README.md)) |
 | `sim/` | Testbench do top-level (`tb_DDS.vhd`, VHDL-2008) e script para rodá-lo no GHDL (`run_ghdl.sh`) |
 | `DDS.qpf`, `DDS.qsf` | Projeto Quartus |
+| `docs/logo/` | Logo do projeto em SVG e PNG ([Identidade visual](#identidade-visual)) |
 
 ## Formas de onda (`lut/`)
 
@@ -135,6 +143,28 @@ Pendente:
 - Ligar frequência, `sel` e escrita da LUT arbitrária ao JTAG
 - Pinagem do DAC, do clock e do reset; restrições de timing (`.sdc`)
 - Validação em simulação (ModelSim) e na placa, com medidas de frequência e espectro
+
+## Identidade visual
+
+Os arquivos do logo ficam em [`docs/logo/`](docs/logo/), em SVG (vetorial, texto em
+contornos) e PNG (2×). A interface em `GUI/` usa as mesmas cores.
+
+| Versão | SVG | PNG |
+|---|---|---|
+| Fundo claro | [`logo-light.svg`](docs/logo/logo-light.svg) | [`logo-light.png`](docs/logo/logo-light.png) |
+| Fundo escuro | [`logo-dark.svg`](docs/logo/logo-dark.svg) | [`logo-dark.png`](docs/logo/logo-dark.png) |
+| Ícone | [`icon.svg`](docs/logo/icon.svg) | [`icon.png`](docs/logo/icon.png) |
+
+O símbolo representa o próprio DDS: a roda de fase (acumulador) projeta seu ponto numa
+senoide em degraus, que é a saída quantizada da LUT.
+
+| Cor | Claro | Escuro |
+|---|---|---|
+| Fundo | `#EEF2F5` | `#0B1626` |
+| Texto | `#12233A` | `#E6EDF5` |
+| Destaque | `#E8711A` | `#FF9A3D` |
+
+Tipografia: Space Grotesk (títulos) e JetBrains Mono (dados e código).
 
 ## Referências
 

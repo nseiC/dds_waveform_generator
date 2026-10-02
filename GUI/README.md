@@ -5,6 +5,7 @@ Interface em Python para controlar o gerador DDS pelo IP **Virtual JTAG**
 
 - `dds_jtag/` — biblioteca (`DdsJtag`, `list_cables`, `load_lut`, `tuning_word`, ...)
 - `gui.py` / `run.sh` — interface gráfica (Tkinter)
+- `theme.py` — identidade visual da interface (cores do logo, fontes, estilos ttk)
 - `exemplo.py` — uso da biblioteca em script
 - `udev/51-usbblaster.rules` — permissão de acesso ao USB-Blaster
 
@@ -39,6 +40,18 @@ Python 3.12 (com tkinter) em `.venv/`, criado com `uv` (`~/.local/bin/uv`):
 
 Só usa a biblioteca padrão do Python. O Quartus é localizado automaticamente em
 `~/intelFPGA_lite/18.1/quartus` (ou pela variável `QUARTUS_ROOTDIR`).
+
+## Aparência
+
+A interface segue a identidade visual do projeto ([`docs/logo/`](../docs/logo/)):
+barra de ferramentas com os grupos *Conexão JTAG* e *LUT arbitrária*, painel de
+propriedades (frequência, FTW, forma de onda e parâmetros do sistema), gráfico da LUT
+arbitrária, console com log e prompt Tcl, e barra de status com o estado da conexão
+e o progresso do envio da LUT. Os painéis são redimensionáveis pelas divisórias.
+
+Tema escuro (padrão) ou claro em **Exibir → Tema**. Para a tipografia da marca,
+instale as fontes **Space Grotesk** e **JetBrains Mono** (Google Fonts); sem elas, a
+interface usa as fontes do sistema. As cores ficam em `PALETTES`, no topo de `theme.py`.
 
 ## Permissão do USB-Blaster (uma vez só, precisa de sudo)
 
