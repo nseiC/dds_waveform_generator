@@ -1,0 +1,4 @@
+examples/.run/
+tests/dac0800_ng.lib
+*.raw
+examples/.fra/

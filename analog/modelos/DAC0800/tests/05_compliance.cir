@@ -1,0 +1,36 @@
+* DAC0800 test 05 - output voltage compliance (V+/V- = +-15 V, IREF = 2 mA)
+*  all bits on: IOUT stays within 1/2 LSB of its value from -10 V to +18 V
+*  (VOC, Figure 11) and collapses below about -10.5 V; IOUTB the same with
+*  all bits off
+.include dac0800_ng.lib
+Vp vp 0 15
+Vm vm 0 -15
+Vr vr 0 10
+R14 vr r14 5k
+R15 r15 0 5k
+Vhi 5 0 5
+Vo no 0 0
+X1 0 0 vm no 5 5 5 5 5 5 5 5 vp r14 r15 cc DAC0800
+Cc cc vm 10n
+X2 0 no vm 0 0 0 0 0 0 0 0 0 vp r14b r15b ccb DAC0800
+R14b vr r14b 5k
+R15b r15b 0 5k
+Ccb ccb vm 10n
+.control
+set noaskquit
+echo "--- test 05: output compliance ---"
+dc Vo -14 18 0.05
+let io = -i(Vo)/2
+meas dc i0 FIND io AT=0
+meas dc imn FIND io AT=-10
+meas dc imx FIND io AT=18
+meas dc icol FIND io AT=-11.5
+let lsb = 2m/256
+if (abs(imn-i0) < 0.5*lsb) & (abs(imx-i0) < 0.5*lsb) & (icol < 0.1*i0)
+  echo "PASS 05 IOUT = $&i0 A at 0 V, $&imn at -10 V, $&imx at +18 V (within 1/2 LSB); $&icol A at -11.5 V"
+else
+  echo "FAIL 05 $&i0 $&imn $&imx $&icol"
+end
+quit
+.endc
+.end

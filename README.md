@@ -139,7 +139,7 @@ $$
 |---|---|
 | [`fpga/`](fpga/) | Projeto Quartus: fontes VHDL, IPs, tabelas `.mif`, testbenches e as figuras deles |
 | [`fpga/legado/`](fpga/legado/) | Versão anterior do gerador, ponto de partida do projeto |
-| [`analog/`](analog/) | Placa no Altium (`layout/`), simulação no LTspice (`simulation/`) e fotos (`figuras/`) |
+| [`analog/`](analog/) | Placa no Altium (`layout/`), simulação no LTspice (`simulation/`), modelo SPICE do DAC0800 (`modelos/`, copiado do [LTSpice-behavioral-IC-lib](https://github.com/nseiC/LTSpice-behavioral-IC-lib)), resultados de bancada (`resultados/`) e fotos (`figuras/`) |
 | [`GUI/`](GUI/) | Interface em Python e a biblioteca `dds_jtag` |
 | [`docs/`](docs/) | Logo, figuras, a roda de fase (`jogo/`) e o script que gera as figuras |
 | [`overleaf/`](overleaf/) | Texto do TCC em LaTeX, no modelo da COELE-CM (UTFPR Campo Mourão) do prof. Osmar Tormena Júnior |
@@ -158,7 +158,7 @@ $$
 - [x] Estágio de saída classe AB retirado (distorção); a saída é o seguidor de tensão
 - [x] Ensaios em bancada com o código final: controle pela GUI, frequência a até 12 ppm da calculada,
   formas de onda e espectro ([resultados](analog/resultados/README.md))
-- [ ] Distorção nos cruzamentos por zero em 10 kHz, que nasce depois do conversor I→V (em investigação)
+- [ ] Distorção nos cruzamentos por zero na saída da placa em 10 kHz
 
 O detalhe de cada parte está nos READMEs do [FPGA](fpga/README.md#estado-atual), da
 [placa analógica](analog/README.md) e da [interface](GUI/README.md).

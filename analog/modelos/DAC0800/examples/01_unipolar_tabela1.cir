@@ -1,0 +1,35 @@
+* DAC0800 - operacao unipolar negativa basica (Figura 21 / Tabela 1)
+*
+* IREF = 10 V / 5k = 2 mA no pino 14, R15 = 5k para o terra, CC = 10 nF
+* (referencia fixa, Figura 18), V+/V- = +-15 V, VLC = 0 (entradas TTL).
+* As duas saidas em corrente vao a resistores de 5k para o terra:
+*     EO  = -IO*5k,   EOB = -IOB*5k,   IO + IOB = IFS = 255/256 * 2 mA
+*
+* Os codigos da Tabela 1 entram um a cada 20 us:
+*     11111111, 11111110, 10000001, 10000000, 01111111, 00000001, 00000000
+*
+* Rode e olhe: v(eo), v(eob), i(Vio)
+
+.include ../DAC0800.lib
+
+Vp vp 0 15
+Vm vm 0 -15
+Vr vr 0 10
+R14 vr r14 5k
+R15 r15 0 5k
+Cc  cc vm 10n
+Vb1 b1 0 PWL(0 5 80u 5 80.02u 0)
+Vb2 b2 0 PWL(0 5 40u 5 40.02u 0 80u 0 80.02u 5 100u 5 100.02u 0)
+Vb3 b3 0 PWL(0 5 40u 5 40.02u 0 80u 0 80.02u 5 100u 5 100.02u 0)
+Vb4 b4 0 PWL(0 5 40u 5 40.02u 0 80u 0 80.02u 5 100u 5 100.02u 0)
+Vb5 b5 0 PWL(0 5 40u 5 40.02u 0 80u 0 80.02u 5 100u 5 100.02u 0)
+Vb6 b6 0 PWL(0 5 40u 5 40.02u 0 80u 0 80.02u 5 100u 5 100.02u 0)
+Vb7 b7 0 PWL(0 5 40u 5 40.02u 0 80u 0 80.02u 5 100u 5 100.02u 0)
+Vb8 b8 0 PWL(0 5 20u 5 20.02u 0 40u 0 40.02u 5 60u 5 60.02u 0 80u 0 80.02u 5 120u 5 120.02u 0)
+*  VLC IOUTB VM IOUT B1 B2 B3 B4 B5 B6 B7 B8 VP VREFP VREFN COMP
+X1 0 eob vm eo b1 b2 b3 b4 b5 b6 b7 b8 vp r14 r15 cc DAC0800
+RL  eo  0 5k
+RLB eob 0 5k
+
+.tran 10n 140u 0 50n
+.end

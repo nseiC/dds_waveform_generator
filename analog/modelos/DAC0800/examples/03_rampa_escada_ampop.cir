@@ -1,0 +1,47 @@
+* DAC0800 - saida em tensao com amp. op. (Figura 24): rampa em escada
+*
+* Um contador binario de 8 bits (fontes de pulso: B8 = LSB muda a cada
+* 10 us, B1 = MSB a cada 1,28 ms) varre os 256 codigos.  IOUT entra no
+* terra virtual do amp. op. (classe LM741) com RL = 5k na realimentacao:
+*     EO = +IO*RL = IFS*RL*codigo/255 = 0 .. +9,96 V
+* IOUTB vai ao terra (Figura 24, nota 2).
+*
+* E a base de um gerador de rampa digital, de um conversor A/D de rampa ou
+* de aproximacoes sucessivas (Figura 30).
+*
+* Rode e olhe: v(eo) - 256 degraus de 39 mV; v(b8)..v(b1)
+
+.include ../DAC0800.lib
+
+Vp vp 0 15
+Vm vm 0 -15
+Vr vr 0 10
+R14 vr r14 5k
+R15 r15 0 5k
+Cc  cc vm 10n
+* contador de 8 bits, um codigo a cada 10 us
+Vb1 b1 0 PULSE(0 5 1280u 20n 20n 1279.98u 2560u)
+Vb2 b2 0 PULSE(0 5 640u 20n 20n 639.98u 1280u)
+Vb3 b3 0 PULSE(0 5 320u 20n 20n 319.98u 640u)
+Vb4 b4 0 PULSE(0 5 160u 20n 20n 159.98u 320u)
+Vb5 b5 0 PULSE(0 5 80u 20n 20n 79.98u 160u)
+Vb6 b6 0 PULSE(0 5 40u 20n 20n 39.98u 80u)
+Vb7 b7 0 PULSE(0 5 20u 20n 20n 19.98u 40u)
+Vb8 b8 0 PULSE(0 5 10u 20n 20n 9.98u 20u)
+X1 0 0 vm io b1 b2 b3 b4 b5 b6 b7 b8 vp r14 r15 cc DAC0800
+XA 0 io eo vp vm AMPOP
+RL io eo 5k
+CL io eo 10p
+
+* --- amp. op. comportamental da classe do LM741: 100 dB, 1 MHz, 0,5 V/us,
+*     saida a 1,5 V dos trilhos -------------------------------------------
+.subckt AMPOP inp inn out vcc vee
+Bin 0 n1 I = 80u*tanh(12.5*V(inp,inn))
+R1  n1 0 100Meg
+C1  n1 0 159p
+Bcl n1 0 I = 1m*(uramp(V(n1)-V(vcc)+1.4) - uramp(V(vee)+1.4-V(n1)))
+Bo  out 0 V = min(max(V(n1), V(vee)+1.5), V(vcc)-1.5)
+.ends
+
+.tran 20n 2.6m 0 100n
+.end

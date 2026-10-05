@@ -1,0 +1,56 @@
+* DAC0800 test 08 - multiplying: small signal on the reference (.ac)
+*  Figure 7: R14 = R15 = 1k, all bits on, CC = 15 pF, small signal on the
+*  reference -> -3 dB of the output current in the low MHz; with the
+*  recommended CC = 0.01 uF (fixed reference) the reference loop is slow
+*  (tens of kHz).  The output follows code x reference (2-quadrant
+*  multiplying: here code 10000000 halves the gain of code 11111111).
+.include dac0800_ng.lib
+Vp vp 0 15
+Vm vm 0 -15
+Vhi hi 0 5
+* CC = 15 pF, all bits on
+Vr1 vr1 0 DC 2 AC 1
+R14a vr1 r14a 1k
+R15a r15a 0 1k
+X1 0 nb1 vm no1 hi hi hi hi hi hi hi hi vp r14a r15a cc1 DAC0800
+Cc1 cc1 vm 15p
+Vo1 no1 0 0
+Vb1 nb1 0 0
+* CC = 0.01 uF
+Vr2 vr2 0 DC 2 AC 1
+R14b vr2 r14b 1k
+R15b r15b 0 1k
+X2 0 nb2 vm no2 hi hi hi hi hi hi hi hi vp r14b r15b cc2 DAC0800
+Cc2 cc2 vm 10n
+Vo2 no2 0 0
+Vb2 nb2 0 0
+* CC = 15 pF, code 10000000
+Vr3 vr3 0 DC 2 AC 1
+R14c vr3 r14c 1k
+R15c r15c 0 1k
+X3 0 nb3 vm no3 hi 0 0 0 0 0 0 0 vp r14c r15c cc3 DAC0800
+Cc3 cc3 vm 15p
+Vo3 no3 0 0
+Vb3 nb3 0 0
+.control
+set noaskquit
+echo "--- test 08: multiplying (reference small signal) ---"
+ac dec 50 100 100Meg
+let g1 = abs(i(Vo1))
+let g2 = abs(i(Vo2))
+let g3 = abs(i(Vo3))
+meas ac g1lf FIND g1 AT=10k
+meas ac g2lf FIND g2 AT=1k
+let g1t = g1lf/sqrt(2)
+meas ac f1 WHEN g1=g1t FALL=1
+meas ac f2 WHEN g2=g1t FALL=1
+meas ac g3lf FIND g3 AT=10k
+let ratio = g3lf/g1lf
+if (abs(g1lf/(255/256*1m)-1) < 0.01) & (f1 > 1Meg) & (f1 < 10Meg) & (f2 > 1k) & (f2 < 200k) & (abs(ratio-128/255) < 0.005)
+  echo "PASS 08 1 mA/V at low frequency; -3 dB at $&f1 Hz with CC = 15 pF, $&f2 Hz with CC = 10 nF; code 128 gives $&ratio of full scale"
+else
+  echo "FAIL 08 $&g1lf $&f1 $&f2 $&ratio"
+end
+quit
+.endc
+.end

@@ -1,0 +1,35 @@
+* DAC0800 - saida bipolar basica (Figura 22 / Tabela 2)
+*
+* IREF = 2 mA, e as duas saidas vao a resistores de 10k para +10 V:
+*     EO = 10 V - 10k*IO,   EOB = 10 V - 10k*IOB
+* EO e EOB sao complementares e vao de -9,92 V a +10 V: uma saida
+* diferencial de ~20 Vpp (Figura 1) sem amplificador operacional.  O
+* "zero" fica entre dois codigos (10000000 da EO = 0, EOB = +0,08 V).
+*
+* Os codigos da Tabela 2 entram um a cada 20 us.
+*
+* Rode e olhe: v(eo), v(eob), v(eo,eob)
+
+.include ../DAC0800.lib
+
+Vp vp 0 15
+Vm vm 0 -15
+Vr vr 0 10
+V10 v10 0 10
+R14 vr r14 5k
+R15 r15 0 5k
+Cc  cc vm 10n
+Vb1 b1 0 PWL(0 5 80u 5 80.02u 0)
+Vb2 b2 0 PWL(0 5 40u 5 40.02u 0 80u 0 80.02u 5 100u 5 100.02u 0)
+Vb3 b3 0 PWL(0 5 40u 5 40.02u 0 80u 0 80.02u 5 100u 5 100.02u 0)
+Vb4 b4 0 PWL(0 5 40u 5 40.02u 0 80u 0 80.02u 5 100u 5 100.02u 0)
+Vb5 b5 0 PWL(0 5 40u 5 40.02u 0 80u 0 80.02u 5 100u 5 100.02u 0)
+Vb6 b6 0 PWL(0 5 40u 5 40.02u 0 80u 0 80.02u 5 100u 5 100.02u 0)
+Vb7 b7 0 PWL(0 5 40u 5 40.02u 0 80u 0 80.02u 5 100u 5 100.02u 0)
+Vb8 b8 0 PWL(0 5 20u 5 20.02u 0 40u 0 40.02u 5 60u 5 60.02u 0 80u 0 80.02u 5 120u 5 120.02u 0)
+X1 0 eob vm eo b1 b2 b3 b4 b5 b6 b7 b8 vp r14 r15 cc DAC0800
+RL  v10 eo  10k
+RLB v10 eob 10k
+
+.tran 10n 140u 0 50n
+.end

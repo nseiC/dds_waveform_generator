@@ -123,7 +123,7 @@ A pasta `simulation/` tem o front-end completo no LTspice 26, alimentado pelos c
 |---|---|
 | `TCC.asc` | Esquemático: DAC0800, conversor I→V, ganho, filtro e buffer (`.tran 5m`), com os nós `DIFFERENTIAL`, `INVERTER`, `FILTERED` e `BUFFERED` |
 | `TCC.net` | Netlist exportada pelo LTspice |
-| `DAC0800.lib`, `DAC0800.asy` | Macromodelo comportamental do DAC0800, feito a partir do datasheet da TI (SNAS538C), e o símbolo. Vem do repositório [LTSpice-behavioral-IC-lib](https://github.com/nseiC/LTSpice-behavioral-IC-lib/tree/main/DAC0800), onde tem 34 verificações contra o datasheet; o TCC o descreve no Apêndice D |
+| `DAC0800.lib`, `DAC0800.asy` | Macromodelo comportamental do DAC0800, feito a partir do datasheet da TI (SNAS538C), e o símbolo. Vem do repositório [LTSpice-behavioral-IC-lib](https://github.com/nseiC/LTSpice-behavioral-IC-lib/tree/main/DAC0800); a pasta completa, com as 34 verificações contra o datasheet e os exemplos, está copiada em [`modelos/DAC0800/`](modelos/DAC0800/). O TCC o descreve no Apêndice D |
 | `SOURCES.lib`, `sources.asy` | Subcircuito `sources`: os 8 bits (PWL), ±15 V e +10 V |
 | `FONTES.asc` | Esquemático das fontes que deu origem ao subcircuito `sources` |
 | `pwl/` | PWL de cada bit, código por amostra e saída de um DAC ideal; detalhes em [`pwl/LEIAME.txt`](simulation/pwl/LEIAME.txt) |
@@ -198,9 +198,9 @@ do osciloscópio de cada medida estão em [`resultados/`](resultados/README.md).
 | Frequência | 0,7 a 12 ppm acima da calculada pela FTW, um desvio comum às referências de tempo da placa e do osciloscópio |
 | Seno de 10 Hz a 1 kHz na saída | THD de −43 a −50 dBc e SINAD de 34 a 37 dB, limitados pelo osciloscópio de 8 bits |
 | Seno de 10 kHz na saída | distorção nos cruzamentos por zero, THD de −17,3 dBc |
-| Seno de 10 kHz no subtrator | limpo, THD de −46,8 dBc: a distorção nasce depois do conversor I→V (em investigação) |
+| Seno de 10 kHz no subtrator | limpo, THD de −46,8 dBc |
 | Espectro até 50 MHz | nenhum espúrio acima de −45,6 dBc |
-| Amplitude no subtrator | 2,1 V<sub>pp</sub>, cerca de metade dos 3,97 V<sub>pp</sub> calculados: provavelmente só uma das duas correntes do DAC chega ao subtrator (em verificação) |
+| Amplitude no subtrator | 2,1 V<sub>pp</sub>, cerca de metade dos 3,97 V<sub>pp</sub> calculados |
 
 <table>
   <tr>

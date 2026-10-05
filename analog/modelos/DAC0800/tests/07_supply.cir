@@ -1,0 +1,63 @@
+* DAC0800 test 07 - power supply currents (table)
+*   +-5 V, IREF = 1 mA:      I+ 2.3 mA, I- 4.3 mA
+*   +5 / -15 V, IREF = 2 mA: I+ 2.4 mA, I- 6.4 mA
+*   +-15 V, IREF = 2 mA:     I+ 2.5 mA, I- 6.5 mA
+*   independent of the logic code (two codes at +-15 V)
+.include dac0800_ng.lib
+Vh cd 0 5
+* +-5 V, 1 mA
+Vp1 vp1 0 5
+Vm1 vm1 0 -5
+Ir1 0 a14 1m
+R1 a15 0 1k
+X1 0 0 vm1 0 cd cd cd cd 0 0 0 0 vp1 a14 a15 c1 DAC0800
+C1 c1 vm1 10n
+* +5 / -15 V, 2 mA
+Vp2 vp2 0 5
+Vm2 vm2 0 -15
+Ir2 0 b14 2m
+R2 b15 0 1k
+X2 0 0 vm2 0 cd cd cd cd 0 0 0 0 vp2 b14 b15 c2 DAC0800
+C2 c2 vm2 10n
+* +-15 V, 2 mA, code 11110000 and code 00000000
+Vp3 vp3 0 15
+Vm3 vm3 0 -15
+Ir3 0 d14 2m
+R3 d15 0 1k
+X3 0 0 vm3 0 cd cd cd cd 0 0 0 0 vp3 d14 d15 c3 DAC0800
+C3 c3 vm3 10n
+Vp4 vp4 0 15
+Vm4 vm4 0 -15
+Ir4 0 e14 2m
+R4 e15 0 1k
+X4 0 0 vm4 0 0 0 0 0 0 0 0 0 vp4 e14 e15 c4 DAC0800
+C4 c4 vm4 10n
+.control
+set noaskquit
+echo "--- test 07: supply currents ---"
+op
+let ip1 = -i(Vp1)
+let im1 = i(Vm1)
+let ip2 = -i(Vp2)
+let im2 = i(Vm2)
+let ip3 = -i(Vp3)
+let im3 = i(Vm3)
+let im4 = i(Vm4)
+if (abs(ip1/2.3m-1) < 0.02) & (abs(im1/4.3m-1) < 0.02)
+  echo "PASS 07a +-5 V, 1 mA: I+ $&ip1 A (2.3m), I- $&im1 A (4.3m)"
+else
+  echo "FAIL 07a $&ip1 $&im1"
+end
+if (abs(ip2/2.4m-1) < 0.02) & (abs(im2/6.4m-1) < 0.02)
+  echo "PASS 07b +5/-15 V, 2 mA: I+ $&ip2 A (2.4m), I- $&im2 A (6.4m)"
+else
+  echo "FAIL 07b $&ip2 $&im2"
+end
+if (abs(ip3/2.5m-1) < 0.02) & (abs(im3/6.5m-1) < 0.02) & (abs(im4-im3) < 2u)
+  echo "PASS 07c +-15 V, 2 mA: I+ $&ip3 A (2.5m), I- $&im3 A (6.5m); I- with code 0: $&im4 A"
+else
+  echo "FAIL 07c $&ip3 $&im3 $&im4"
+end
+quit
+.endc
+.end

@@ -1,0 +1,46 @@
+* DAC0800 - binario com offset simetrico (Figura 23 / Tabela 3)
+*
+* IOUT vai a entrada inversora do amp. op. (realimentacao RL = 5k), IOUTB a
+* entrada nao inversora com RL' = 5k para o terra.  Com RL = RL':
+*     EO = VREF * (-255/256 + 2*X/256)       X = codigo, 0..255
+* simetrico em torno de zero: +9,96 V em 255, +0,04 / -0,04 V em 128 / 127
+* e -9,96 V em 0.  Nao ha codigo para 0 V exato: o passo e de 2 LSB.
+*
+* Os codigos da Tabela 3 entram um a cada 100 us.
+*
+* Rode e olhe: v(eo)
+
+.include ../DAC0800.lib
+
+Vp vp 0 15
+Vm vm 0 -15
+Vr vr 0 10
+R14 vr r14 5k
+R15 r15 0 5k
+Cc  cc vm 10n
+Vb1 b1 0 PWL(0 5 300u 5 300.02u 0)
+Vb2 b2 0 PWL(0 5 200u 5 200.02u 0 300u 0 300.02u 5 400u 5 400.02u 0)
+Vb3 b3 0 PWL(0 5 200u 5 200.02u 0 300u 0 300.02u 5 400u 5 400.02u 0)
+Vb4 b4 0 PWL(0 5 200u 5 200.02u 0 300u 0 300.02u 5 400u 5 400.02u 0)
+Vb5 b5 0 PWL(0 5 200u 5 200.02u 0 300u 0 300.02u 5 400u 5 400.02u 0)
+Vb6 b6 0 PWL(0 5 200u 5 200.02u 0 300u 0 300.02u 5 400u 5 400.02u 0)
+Vb7 b7 0 PWL(0 5 200u 5 200.02u 0 300u 0 300.02u 5 400u 5 400.02u 0)
+Vb8 b8 0 PWL(0 5 100u 5 100.02u 0 300u 0 300.02u 5 500u 5 500.02u 0)
+X1 0 nb vm na b1 b2 b3 b4 b5 b6 b7 b8 vp r14 r15 cc DAC0800
+RLB nb 0 5k
+RL  na eo 5k
+CL  na eo 10p
+XA nb na eo vp vm AMPOP
+
+* --- amp. op. comportamental da classe do LM741: 100 dB, 1 MHz, 0,5 V/us,
+*     saida a 1,5 V dos trilhos -------------------------------------------
+.subckt AMPOP inp inn out vcc vee
+Bin 0 n1 I = 80u*tanh(12.5*V(inp,inn))
+R1  n1 0 100Meg
+C1  n1 0 159p
+Bcl n1 0 I = 1m*(uramp(V(n1)-V(vcc)+1.4) - uramp(V(vee)+1.4-V(n1)))
+Bo  out 0 V = min(max(V(n1), V(vee)+1.5), V(vcc)-1.5)
+.ends
+
+.tran 50n 600u 0 200n
+.end

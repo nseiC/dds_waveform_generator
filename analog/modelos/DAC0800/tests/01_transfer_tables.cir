@@ -1,0 +1,137 @@
+* DAC0800 test 01 - transfer tables 1 and 2 (VREF = 10 V, RREF = R15 = 5k,
+*  V+/V- = +-15 V, VLC = 0, CC = 10 nF)
+*  Table 1 / Figure 21: IOUT and IOUTB into 5k to ground (EO = -IO*5k)
+*  Table 2 / Figure 22: 10k from each output to +10 V (bipolar output)
+*  every code within 1/2 LSB (3.9 uA, 39 mV in Table 2) of the table
+.include dac0800_ng.lib
+Vp vp 0 15
+Vm vm 0 -15
+Vr vr 0 10
+V10 v10 0 10
+Vb1 b1 0 PWL(0 5 2e-06 5 2.01e-06 5 4e-06 5 4.01e-06 5 6e-06 5 6.01e-06 5 8e-06 5 8.01e-06 0 1e-05 0 1.001e-05 0 1.2e-05 0 1.201e-05 0)
+Vb2 b2 0 PWL(0 5 2e-06 5 2.01e-06 5 4e-06 5 4.01e-06 0 6e-06 0 6.01e-06 0 8e-06 0 8.01e-06 5 1e-05 5 1.001e-05 0 1.2e-05 0 1.201e-05 0)
+Vb3 b3 0 PWL(0 5 2e-06 5 2.01e-06 5 4e-06 5 4.01e-06 0 6e-06 0 6.01e-06 0 8e-06 0 8.01e-06 5 1e-05 5 1.001e-05 0 1.2e-05 0 1.201e-05 0)
+Vb4 b4 0 PWL(0 5 2e-06 5 2.01e-06 5 4e-06 5 4.01e-06 0 6e-06 0 6.01e-06 0 8e-06 0 8.01e-06 5 1e-05 5 1.001e-05 0 1.2e-05 0 1.201e-05 0)
+Vb5 b5 0 PWL(0 5 2e-06 5 2.01e-06 5 4e-06 5 4.01e-06 0 6e-06 0 6.01e-06 0 8e-06 0 8.01e-06 5 1e-05 5 1.001e-05 0 1.2e-05 0 1.201e-05 0)
+Vb6 b6 0 PWL(0 5 2e-06 5 2.01e-06 5 4e-06 5 4.01e-06 0 6e-06 0 6.01e-06 0 8e-06 0 8.01e-06 5 1e-05 5 1.001e-05 0 1.2e-05 0 1.201e-05 0)
+Vb7 b7 0 PWL(0 5 2e-06 5 2.01e-06 5 4e-06 5 4.01e-06 0 6e-06 0 6.01e-06 0 8e-06 0 8.01e-06 5 1e-05 5 1.001e-05 0 1.2e-05 0 1.201e-05 0)
+Vb8 b8 0 PWL(0 5 2e-06 5 2.01e-06 0 4e-06 0 4.01e-06 5 6e-06 5 6.01e-06 0 8e-06 0 8.01e-06 5 1e-05 5 1.001e-05 5 1.2e-05 5 1.201e-05 0)
+* unipolar (Figure 21)
+R14 vr r14 5k
+R15 r15 0 5k
+X1 0 eob vm eo b1 b2 b3 b4 b5 b6 b7 b8 vp r14 r15 cc DAC0800
+Cc cc vm 10n
+Rl1 eo 0 5k
+Rl2 eob 0 5k
+* bipolar (Figure 22)
+R14b vr r14b 5k
+R15b r15b 0 5k
+X2 0 fb vm f b1 b2 b3 b4 b5 b6 b7 b8 vp r14b r15b ccb DAC0800
+Ccb ccb vm 10n
+Rf1 v10 f 10k
+Rf2 v10 fb 10k
+.control
+set noaskquit
+echo "--- test 01: transfer tables ---"
+tran 10n 14u 0 50n
+meas tran eo0 FIND v(eo) AT=1.9e-06
+meas tran eob0 FIND v(eob) AT=1.9e-06
+meas tran f0 FIND v(f) AT=1.9e-06
+meas tran fb0 FIND v(fb) AT=1.9e-06
+if (abs(eo0-(-9.96)) < 0.0195) & (abs(eob0-(0)) < 0.0195)
+  echo "PASS 01 table 1, full scale (11111111): EO $&eo0 V, EOB $&eob0 V (-9.96 / 0)"
+else
+  echo "FAIL 01 table 1, full scale: $&eo0 $&eob0"
+end
+if (abs(f0-(-9.92)) < 0.039) & (abs(fb0-(10)) < 0.039)
+  echo "PASS 01 table 2, full scale: EO $&f0 V, EOB $&fb0 V (-9.92 / 10)"
+else
+  echo "FAIL 01 table 2, full scale: $&f0 $&fb0"
+end
+meas tran eo1 FIND v(eo) AT=3.9e-06
+meas tran eob1 FIND v(eob) AT=3.9e-06
+meas tran f1 FIND v(f) AT=3.9e-06
+meas tran fb1 FIND v(fb) AT=3.9e-06
+if (abs(eo1-(-9.92)) < 0.0195) & (abs(eob1-(-0.04)) < 0.0195)
+  echo "PASS 01 table 1, full scale - LSB (11111110): EO $&eo1 V, EOB $&eob1 V (-9.92 / -0.04)"
+else
+  echo "FAIL 01 table 1, full scale - LSB: $&eo1 $&eob1"
+end
+if (abs(f1-(-9.84)) < 0.039) & (abs(fb1-(9.92)) < 0.039)
+  echo "PASS 01 table 2, full scale - LSB: EO $&f1 V, EOB $&fb1 V (-9.84 / 9.92)"
+else
+  echo "FAIL 01 table 2, full scale - LSB: $&f1 $&fb1"
+end
+meas tran eo2 FIND v(eo) AT=5.9e-06
+meas tran eob2 FIND v(eob) AT=5.9e-06
+meas tran f2 FIND v(f) AT=5.9e-06
+meas tran fb2 FIND v(fb) AT=5.9e-06
+if (abs(eo2-(-5.04)) < 0.0195) & (abs(eob2-(-4.92)) < 0.0195)
+  echo "PASS 01 table 1, half scale + LSB (10000001): EO $&eo2 V, EOB $&eob2 V (-5.04 / -4.92)"
+else
+  echo "FAIL 01 table 1, half scale + LSB: $&eo2 $&eob2"
+end
+if (abs(f2-(-0.08)) < 0.039) & (abs(fb2-(0.16)) < 0.039)
+  echo "PASS 01 table 2, half scale + LSB: EO $&f2 V, EOB $&fb2 V (-0.08 / 0.16)"
+else
+  echo "FAIL 01 table 2, half scale + LSB: $&f2 $&fb2"
+end
+meas tran eo3 FIND v(eo) AT=7.9e-06
+meas tran eob3 FIND v(eob) AT=7.9e-06
+meas tran f3 FIND v(f) AT=7.9e-06
+meas tran fb3 FIND v(fb) AT=7.9e-06
+if (abs(eo3-(-5)) < 0.0195) & (abs(eob3-(-4.96)) < 0.0195)
+  echo "PASS 01 table 1, half scale (10000000): EO $&eo3 V, EOB $&eob3 V (-5 / -4.96)"
+else
+  echo "FAIL 01 table 1, half scale: $&eo3 $&eob3"
+end
+if (abs(f3-(0)) < 0.039) & (abs(fb3-(0.08)) < 0.039)
+  echo "PASS 01 table 2, half scale: EO $&f3 V, EOB $&fb3 V (0 / 0.08)"
+else
+  echo "FAIL 01 table 2, half scale: $&f3 $&fb3"
+end
+meas tran eo4 FIND v(eo) AT=9.9e-06
+meas tran eob4 FIND v(eob) AT=9.9e-06
+meas tran f4 FIND v(f) AT=9.9e-06
+meas tran fb4 FIND v(fb) AT=9.9e-06
+if (abs(eo4-(-4.96)) < 0.0195) & (abs(eob4-(-5)) < 0.0195)
+  echo "PASS 01 table 1, half scale - LSB (01111111): EO $&eo4 V, EOB $&eob4 V (-4.96 / -5)"
+else
+  echo "FAIL 01 table 1, half scale - LSB: $&eo4 $&eob4"
+end
+if (abs(f4-(0.08)) < 0.039) & (abs(fb4-(0)) < 0.039)
+  echo "PASS 01 table 2, half scale - LSB: EO $&f4 V, EOB $&fb4 V (0.08 / 0)"
+else
+  echo "FAIL 01 table 2, half scale - LSB: $&f4 $&fb4"
+end
+meas tran eo5 FIND v(eo) AT=1.19e-05
+meas tran eob5 FIND v(eob) AT=1.19e-05
+meas tran f5 FIND v(f) AT=1.19e-05
+meas tran fb5 FIND v(fb) AT=1.19e-05
+if (abs(eo5-(-0.04)) < 0.0195) & (abs(eob5-(-9.92)) < 0.0195)
+  echo "PASS 01 table 1, zero scale + LSB (00000001): EO $&eo5 V, EOB $&eob5 V (-0.04 / -9.92)"
+else
+  echo "FAIL 01 table 1, zero scale + LSB: $&eo5 $&eob5"
+end
+if (abs(f5-(9.92)) < 0.039) & (abs(fb5-(-9.84)) < 0.039)
+  echo "PASS 01 table 2, zero scale + LSB: EO $&f5 V, EOB $&fb5 V (9.92 / -9.84)"
+else
+  echo "FAIL 01 table 2, zero scale + LSB: $&f5 $&fb5"
+end
+meas tran eo6 FIND v(eo) AT=1.39e-05
+meas tran eob6 FIND v(eob) AT=1.39e-05
+meas tran f6 FIND v(f) AT=1.39e-05
+meas tran fb6 FIND v(fb) AT=1.39e-05
+if (abs(eo6-(0)) < 0.0195) & (abs(eob6-(-9.96)) < 0.0195)
+  echo "PASS 01 table 1, zero scale (00000000): EO $&eo6 V, EOB $&eob6 V (0 / -9.96)"
+else
+  echo "FAIL 01 table 1, zero scale: $&eo6 $&eob6"
+end
+if (abs(f6-(10)) < 0.039) & (abs(fb6-(-9.92)) < 0.039)
+  echo "PASS 01 table 2, zero scale: EO $&f6 V, EOB $&fb6 V (10 / -9.92)"
+else
+  echo "FAIL 01 table 2, zero scale: $&f6 $&fb6"
+end
+quit
+.endc
+.end

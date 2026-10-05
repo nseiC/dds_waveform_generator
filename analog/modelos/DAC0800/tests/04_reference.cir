@@ -1,0 +1,78 @@
+* DAC0800 test 04 - reference amplifier and reference current
+*  a) IFS = 255/256 * IREF for IREF = 0.2 / 1 / 2 / 4 mA (Figure 5), V- = -15 V
+*  b) asking for more: limited at ~2.1 mA with V- = -5 V and ~4.2 mA with
+*     V- = -15 V (IFSR max)
+*  c) reference bias current: 1 uA out of pin 15 (I15 -1 uA typ)
+*  d) negative reference (Figure 20): VREF- = -10 V into pin 15 through
+*     R15, pin 14 to ground through RREF -> IREF = 10 V / 5k
+.include dac0800_ng.lib
+.param IR=2m VMN=-15
+Vp vp 0 15
+Vm vm 0 {VMN}
+Ir 0 r14 {IR}
+R15 r15 0 5k
+X1 0 nob vm no 5 5 5 5 5 5 5 5 vp r14 r15 cc DAC0800
+Vhi 5 0 5
+Cc cc vm 10n
+Vio no 0 0
+Viob nob 0 0
+* range limit: 3 mA asked with V- = -5 V, 5 mA asked with V- = -15 V
+Vm5 vm5 0 -5
+Vr10 vr10 0 10
+R145 vr10 r145 3.33k
+R155 r155 0 3.33k
+X5 0 nob5 vm5 no5 5 5 5 5 5 5 5 5 vp r145 r155 cc5 DAC0800
+Cc5 cc5 vm5 10n
+Vio5 no5 0 0
+Viob5 nob5 0 0
+R1415 vr10 r1415 2k
+R1515 r1515 0 2k
+X6 0 nob6 vm6 no6 5 5 5 5 5 5 5 5 vp r1415 r1515 cc6 DAC0800
+Vm6 vm6 0 -15
+Cc6 cc6 vm6 10n
+Vio6 no6 0 0
+Viob6 nob6 0 0
+* negative reference
+Vrn vrn 0 -10
+R14n r14n 0 5k
+R15n vrn r15n 5k
+X2 0 nob2 vm no2 5 5 5 5 5 5 5 5 vp r14n r15n ccn DAC0800
+Ccn ccn vm 10n
+Vio2 no2 0 0
+Viob2 nob2 0 0
+.control
+set noaskquit
+echo "--- test 04: reference ---"
+foreach ir 0.2m 1m 2m 4m
+  alterparam IR = $ir
+  reset
+  op
+  let ifs = -i(Vio)
+  let ideal = $ir*255/256
+  if abs(ifs/ideal-1) < 0.002
+    echo "PASS 04a IREF = $ir A: IFS = $&ifs A (255/256 IREF = $&ideal)"
+  else
+    echo "FAIL 04a IREF = $ir: $&ifs vs $&ideal"
+  end
+end
+op
+let ifs5 = -i(Vio5)
+let ifs15 = -i(Vio6)
+if (ifs5 > 2.0m) & (ifs5 < 2.2m) & (ifs15 > 4.0m) & (ifs15 < 4.3m)
+  echo "PASS 04b output current range: 3 mA asked with V- = -5 V gives $&ifs5 A (2.1 mA max); 5 mA asked with V- = -15 V gives $&ifs15 A (4.2 mA max)"
+else
+  echo "FAIL 04b $&ifs5 $&ifs15"
+end
+alterparam IR = 2m
+reset
+op
+let i15 = v(r15)/5k
+let ifsn = -i(Vio2)
+if (abs(i15-1u) < 0.05u) & (abs(ifsn/(2m*255/256)-1) < 0.003)
+  echo "PASS 04c pin 15 bias $&i15 A out of the pin (1 uA typ); 04d negative reference: IFS = $&ifsn A"
+else
+  echo "FAIL 04c/d $&i15 $&ifsn"
+end
+quit
+.endc
+.end

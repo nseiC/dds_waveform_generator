@@ -1,0 +1,47 @@
+* DAC0800 - multiplicador de 2 quadrantes / atenuador digital (Figura 28a)
+*
+* A referencia nao e fixa: VREF = 5 V + 4 V de senoide de 1 kHz (sempre
+* positiva - a corrente de referencia nao pode inverter).  A saida e
+*     IO = codigo/256 * VREF/RREF
+* ou seja, o codigo escolhe o "ganho" do sinal: um atenuador / controle de
+* volume digital.  CC = 15 pF para o amplificador de referencia acompanhar
+* sinais rapidos (Figura 7) - com 10 nF ele so serve para referencia fixa.
+*
+* O codigo muda a cada 2 ms: 255, 128, 64, 16 - a amplitude da senoide na
+* saida cai para 1, 1/2, 1/4 e 1/16.
+*
+* Rode e olhe: v(vr), v(eo)
+
+.include ../DAC0800.lib
+
+Vp vp 0 15
+Vm vm 0 -15
+Vr vr 0 SIN(5 4 1k)
+R14 vr r14 5k
+R15 r15 0 5k
+Cc  cc vm 15p
+Vb1 b1 0 PWL(0 5 4000u 5 4000.02u 0)
+Vb2 b2 0 PWL(0 5 2000u 5 2000.02u 0 4000u 0 4000.02u 5 6000u 5 6000.02u 0)
+Vb3 b3 0 PWL(0 5 2000u 5 2000.02u 0)
+Vb4 b4 0 PWL(0 5 2000u 5 2000.02u 0 6000u 0 6000.02u 5)
+Vb5 b5 0 PWL(0 5 2000u 5 2000.02u 0)
+Vb6 b6 0 PWL(0 5 2000u 5 2000.02u 0)
+Vb7 b7 0 PWL(0 5 2000u 5 2000.02u 0)
+Vb8 b8 0 PWL(0 5 2000u 5 2000.02u 0)
+X1 0 0 vm io b1 b2 b3 b4 b5 b6 b7 b8 vp r14 r15 cc DAC0800
+XA 0 io eo vp vm AMPOP
+RL io eo 5k
+CL io eo 10p
+
+* --- amp. op. comportamental da classe do LM741: 100 dB, 1 MHz, 0,5 V/us,
+*     saida a 1,5 V dos trilhos -------------------------------------------
+.subckt AMPOP inp inn out vcc vee
+Bin 0 n1 I = 80u*tanh(12.5*V(inp,inn))
+R1  n1 0 100Meg
+C1  n1 0 159p
+Bcl n1 0 I = 1m*(uramp(V(n1)-V(vcc)+1.4) - uramp(V(vee)+1.4-V(n1)))
+Bo  out 0 V = min(max(V(n1), V(vee)+1.5), V(vcc)-1.5)
+.ends
+
+.tran 50n 8m 0 500n
+.end

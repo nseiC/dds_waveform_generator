@@ -1,0 +1,62 @@
+* DAC0800 test 03 - logic inputs
+*  a) VLC = 0: B1 swept 0 -> 3 V; the MSB current is fully off below
+*     VIL = 0.8 V, fully on above VIH = 2.0 V, switching at VLC + 1.4 V and
+*     complete within +-0.1 V of it (Figure 13)
+*  b) VLC = 3.4 V (two diodes, 5 V CMOS, Figure 27): threshold moves to 4.8 V
+*  c) input current: 2 uA out of a low input, ~0 into a high one (IIL, IIH)
+.include dac0800_ng.lib
+.param VL=0
+Vp vp 0 15
+Vm vm 0 -15
+Vr vr 0 10
+Vlc vlc 0 {VL}
+Vb1 b1 0 0
+Vlo blo 0 0.4
+Vhi bhi 0 5
+R14 vr r14 5k
+R15 r15 0 5k
+* only B1 swept; B2..B7 low, B8 low through an ammeter source (low input),
+* the other instance takes B8 high
+X1 vlc nob vm no b1 0 0 0 0 0 0 blo vp r14 r15 cc DAC0800
+Cc cc vm 10n
+Vio no 0 0
+Viob nob 0 0
+.control
+set noaskquit
+echo "--- test 03: logic inputs ---"
+dc Vb1 0 3 2m
+let io = -i(Vio)
+meas dc v10 WHEN io=0.1m RISE=1
+meas dc v50 WHEN io=0.5m RISE=1
+meas dc v90 WHEN io=0.9m RISE=1
+meas dc ilo FIND io AT=0.8
+meas dc ihi FIND io AT=2.0
+if (abs(v50-1.4) < 0.01) & (v90-v10 < 0.2) & (ilo < 1u) & (ihi > 0.999m)
+  echo "PASS 03a VLC = 0: MSB switches at $&v50 V (VLC + 1.4), 10-90 % within $&v10 .. $&v90 V; off at 0.8 V, on at 2.0 V"
+else
+  echo "FAIL 03a $&v50 $&v10 $&v90 $&ilo $&ihi"
+end
+alterparam VL = 3.4
+reset
+dc Vb1 0 8 2m
+let io = -i(Vio)
+meas dc v50 WHEN io=0.5m RISE=1
+if abs(v50-4.8) < 0.01
+  echo "PASS 03b VLC = 3.4 V: threshold moves to $&v50 V (VLC + 1.4 V)"
+else
+  echo "FAIL 03b $&v50"
+end
+alterparam VL = 0
+reset
+op
+let iil = i(Vlo)
+let iih = -i(Vhi)
+print iil
+if (abs(iil-2u) < 0.1u)
+  echo "PASS 03c low input sources $&iil A out of the pin (IIL -2 uA typ, -10 max)"
+else
+  echo "FAIL 03c IIL $&iil"
+end
+quit
+.endc
+.end

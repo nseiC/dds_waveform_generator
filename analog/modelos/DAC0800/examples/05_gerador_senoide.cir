@@ -1,0 +1,56 @@
+* DAC0800 - gerador de senoide digital (tabela de seno + DAC + filtro)
+*
+* Um "microcontrolador" comportamental entrega, a cada 10 us (100 kHz), o
+* codigo de 8 bits de uma senoide de 1 kHz:
+*     codigo = arredonda(127,5 + 127,5*sin(2*pi*1k*t_amostra))
+* O DAC0800 com amp. op. de saida bipolar (Figura 23, binario com offset)
+* da a escada de +-9,96 V, e um RC de 2 polos (fc ~ 10 kHz) tira os degraus.
+*
+* Mostra: quantizacao em 8 bits (39 mV de passo, 78 mV no offset binario),
+* a escada a 100 kHz e o atraso do filtro.
+*
+* Rode e olhe: v(eo) (escada), v(out) (filtrado), v(code)
+
+.include ../DAC0800.lib
+
+Vp vp 0 15
+Vm vm 0 -15
+Vr vr 0 10
+R14 vr r14 5k
+R15 r15 0 5k
+Cc  cc vm 10n
+
+* --- amostrador: codigo da senoide a cada 10 us -----------------------------
+Bcode code 0 V = floor(128 + 127.5*sin(6.2831853*1k*10u*floor(time/10u + 1u)))
+Bb1 b1 0 V = 5*(floor(V(code)/128) - 2*floor(V(code)/256))
+Bb2 b2 0 V = 5*(floor(V(code)/64) - 2*floor(V(code)/128))
+Bb3 b3 0 V = 5*(floor(V(code)/32) - 2*floor(V(code)/64))
+Bb4 b4 0 V = 5*(floor(V(code)/16) - 2*floor(V(code)/32))
+Bb5 b5 0 V = 5*(floor(V(code)/8) - 2*floor(V(code)/16))
+Bb6 b6 0 V = 5*(floor(V(code)/4) - 2*floor(V(code)/8))
+Bb7 b7 0 V = 5*(floor(V(code)/2) - 2*floor(V(code)/4))
+Bb8 b8 0 V = 5*(floor(V(code)/1) - 2*floor(V(code)/2))
+
+X1 0 nb vm na b1 b2 b3 b4 b5 b6 b7 b8 vp r14 r15 cc DAC0800
+RLB nb 0 5k
+RL  na eo 5k
+CL  na eo 10p
+XA nb na eo vp vm AMPOP
+* filtro RC de 2 polos
+Rf1 eo f1 1.6k
+Cf1 f1 0 10n
+Rf2 f1 out 16k
+Cf2 out 0 1n
+
+* --- amp. op. comportamental da classe do LM741: 100 dB, 1 MHz, 0,5 V/us,
+*     saida a 1,5 V dos trilhos -------------------------------------------
+.subckt AMPOP inp inn out vcc vee
+Bin 0 n1 I = 80u*tanh(12.5*V(inp,inn))
+R1  n1 0 100Meg
+C1  n1 0 159p
+Bcl n1 0 I = 1m*(uramp(V(n1)-V(vcc)+1.4) - uramp(V(vee)+1.4-V(n1)))
+Bo  out 0 V = min(max(V(n1), V(vee)+1.5), V(vcc)-1.5)
+.ends
+
+.tran 50n 3m 0 200n
+.end

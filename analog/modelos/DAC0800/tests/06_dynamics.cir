@@ -1,0 +1,77 @@
+* DAC0800 test 06 - dynamics
+*  a) all bits switched, output into a 100 ohm load (Figure 29 is a fast
+*     current-to-voltage stage): tPLH / tPHL 35 ns typ, 60 max; settling to
+*     1/2 LSB 100 ns typ, 135 / 150 max
+*  b) major carry 01111111 -> 10000000: settles to 1/2 LSB like any code
+*     (the only glitch is the one the inputs' own 1 ns skew makes)
+*  c) pulsed reference (Figure 26): CC = 0, RIN = 5k + REQ ~ 200 ohm, the
+*     reference current slews at ~8 mA/us (dI/dt typ, 4 min)
+.include dac0800_ng.lib
+Vp vp 0 15
+Vm vm 0 -15
+Vr vr 0 10
+R14 vr r14 5k
+R15 r15 0 5k
+Va ba 0 PULSE(0 5 100n 2n 2n 500n 1u)
+Vca ca 0 PWL(0 0 3u 0 3.002u 5)
+Vcb cb 0 PWL(0 5 3u 5 3.002u 0)
+* a) all bits together
+X1 0 nob vm no ba ba ba ba ba ba ba ba vp r14 r15 cc DAC0800
+Cc cc vm 10n
+Rl no 0 100
+Rlb nob 0 100
+* b) major carry: B1 rises, B2..B8 fall
+R14b vr r14b 5k
+R15b r15b 0 5k
+X2 0 nob2 vm no2 ca cb cb cb cb cb cb cb vp r14b r15b cc2 DAC0800
+Cc2 cc2 vm 10n
+Rl2 no2 0 100
+Rlb2 nob2 0 100
+* c) pulsed reference: 10 V square into RIN = 5k, REQ = 200 ohm to ground
+Vpr vpr 0 PULSE(0 10 3u 5n 5n 2u 4u)
+Rin vpr r14p 5k
+Rp r14p 0 200
+X3 0 nob3 vm no3 5 5 5 5 5 5 5 5 vp r14p 0 nc3 DAC0800
+Vhi 5 0 5
+Rl3 no3 0 100
+Rlb3 nob3 0 100
+.control
+set noaskquit
+echo "--- test 06: dynamics ---"
+tran 0.2n 8u 0 0.5n
+let v1 = -v(no)
+meas tran tplh TRIG v(ba) VAL=1.4 RISE=1 TARG v1 VAL=0.0996 RISE=1
+meas tran tphl TRIG v(ba) VAL=1.4 FALL=1 TARG v1 VAL=0.0996 FALL=1
+meas tran ts1 TRIG v(ba) VAL=1.4 RISE=1 TARG v1 VAL=0.19883 RISE=1
+if (abs(tplh-35n) < 5n) & (abs(tphl-35n) < 5n) & (ts1 < 105n)
+  echo "PASS 06a tPLH $&tplh s, tPHL $&tphl s (35 ns typ); settles to 1/2 LSB in $&ts1 s (100 ns typ)"
+else
+  echo "FAIL 06a $&tplh $&tphl $&ts1"
+end
+let v2 = -v(no2)
+meas tran vmc FIND v2 AT=2.9u
+meas tran vfin FIND v2 AT=3.9u
+meas tran vhi MAX v2 from=3.105u to=3.9u
+meas tran vlo MIN v2 from=3.105u to=3.9u
+meas tran gpk MAX v2 from=3u to=3.105u
+let lsbv = 2m/256*100
+let glitch = (gpk-vfin)/lsbv
+if (abs(vmc-0.09922) < 0.0002) & (abs(vfin-0.1) < 0.0002) & (vhi-vfin < 0.5*lsbv) & (vfin-vlo < 0.5*lsbv)
+  echo "PASS 06b major carry 01111111 -> 10000000: within 1/2 LSB 105 ns after the edge; $&glitch LSB of glitch from the 1 ns input skew"
+else
+  echo "FAIL 06b $&vmc $&vfin $&vhi $&vlo"
+end
+let i3 = -v(no3)/100
+meas tran ia FIND i3 AT=3.05u
+meas tran ib FIND i3 AT=3.6u
+meas tran t20 WHEN i3=0.4m RISE=1
+meas tran t60 WHEN i3=1.2m RISE=1
+let didt = 0.8m/(t60-t20)
+if (didt > 4e3) & (didt < 12e3)
+  echo "PASS 06c pulsed reference, CC = 0: dI/dt = $&didt A/s (8 mA/us typ, 4 min)"
+else
+  echo "FAIL 06c $&didt"
+end
+quit
+.endc
+.end
