@@ -39,7 +39,7 @@ LARGURA = 6.3  # 16 cm
 
 # figuras dos testbenches usadas no texto
 TESTBENCHES = [
-    "tb_frequency_translator", "tb_LUT_tabelas", "tb_LUT_latencia",
+    "tb_LUT_tabelas", "tb_LUT_latencia",
     "tb_dds_core_formas", "tb_dds_core_latencia", "tb_vjtag_dr", "tb_cmd_sync", "tb_jtag_control",
     "tb_system_visao_geral", "tb_system_detalhes", "tb_DDS_pll", "tb_DDS_saida",
     # blocos menores (Apêndice B)
@@ -631,6 +631,40 @@ def bancada() -> None:
               f"  {s['sinad']:5.1f} dB  {s['enob']:4.2f} bits  {s['thd']:6.1f} dBc")
 
 
+def fig_modelo_dac0800():
+    """Blocos do modelo comportamental do DAC0800 (analog/simulation/DAC0800.lib)."""
+    fig, ax = eixo_vazio(LARGURA, 2.9, (0, 16), (0.1, 6.6))
+    h = 1.3
+    # referência: amplificador de transcondutância -> COMP -> I_REF
+    ax.text(0.05, 5.05, "$V_{REF(+)}$, $V_{REF(-)}$\n(pinos 14 e 15)", fontsize=7.5, va="center", ha="left")
+    caixa(ax, 2.6, 4.4, 2.6, h, "amplificador de\nreferência ($g_m$)", fs=7.5)
+    caixa(ax, 5.8, 4.4, 2.0, h, "COMP\n$C_{int}+C_C$", fs=7.5)
+    caixa(ax, 8.4, 4.4, 2.5, h, "$I_{REF}$, com\nlimite suave", fs=7.5)
+    seta(ax, 2.0, 5.05, 2.6, 5.05)
+    seta(ax, 5.2, 5.05, 5.8, 5.05)
+    seta(ax, 7.8, 5.05, 8.4, 5.05)
+    ax.annotate("", xy=(1.3, 5.6), xytext=(9.65, 5.7),
+                arrowprops={"arrowstyle": "-|>", "color": GRAY, "lw": 0.8, "mutation_scale": 8,
+                            "connectionstyle": "arc,angleA=90,angleB=90,armA=8,armB=8,rad=4"})
+    ax.text(5.5, 6.45, "malha de referência: $V_{14} = V_{15}$, logo $I_{REF} = V_{REF}/R_{REF}$", fontsize=7,
+            ha="center", va="center", color=GRAY)
+    # bits: limiar -> rampa de comutação -> soma ponderada -> fontes de corrente
+    ax.text(0.05, 1.55, "B1 a B8\n(pinos 5 a 12)", fontsize=7.5, va="center", ha="left")
+    caixa(ax, 2.6, 0.9, 2.6, h, "limiar\n$V_{LC}$ + 1,4 V", fs=7.5)
+    caixa(ax, 5.8, 0.9, 2.0, h, "rampa\nde 70 ns", fs=7.5)
+    caixa(ax, 8.4, 0.9, 2.5, h, "$\\sum b_k/2^k$\n(fração do código)", fs=7.5)
+    caixa(ax, 11.6, 0.9, 2.7, h, "fontes de corrente\n$I_{OUT}$ e $\\overline{I_{OUT}}$", fs=7.5)
+    seta(ax, 1.9, 1.55, 2.6, 1.55)
+    seta(ax, 5.2, 1.55, 5.8, 1.55, "$d_k$", dy=0.08)
+    seta(ax, 7.8, 1.55, 8.4, 1.55, "$b_k$", dy=0.08)
+    seta(ax, 10.9, 1.55, 11.6, 1.55)
+    seta(ax, 10.9, 5.05, 12.95, 2.2, "$I_{REF}$", dy=0.1, ha="left")
+    seta(ax, 14.3, 1.55, 15.9, 1.55)
+    ax.text(15.1, 1.75, "pinos\n4 e 2", fontsize=7, ha="center", va="bottom")
+    ax.text(12.95, 0.65, "só com o pino acima de $V^-$ + 4,5 V", fontsize=6.5, ha="center", va="top", color=GRAY)
+    salvar(fig, "modelo_dac0800")
+
+
 def fig_relogio_fase():
     """O acumulador de 32 bits como um relógio de um só ponteiro, para três valores de M.
 
@@ -691,6 +725,7 @@ def main() -> None:
     fig_dds_blocos()
     fig_roda_fase()
     fig_relogio_fase()
+    fig_modelo_dac0800()
     sfdr = fig_espectros()
     fig_sistema()
     fig_hierarquia()

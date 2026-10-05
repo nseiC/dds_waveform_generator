@@ -51,14 +51,7 @@ No RTL, o conversor de frequência é um único multiplicador, \cod{Mult0}, entr
 	\legend{Fonte~---~Autoria própria.}
 \end{figure}
 
-A Figura~\ref{fig:tb_ftw}(a) mostra a palavra de sintonia para todas as entradas, e a Figura~\ref{fig:tb_ftw}(b) mostra o erro em relação ao valor exato \(f \cdot 2^{32}/f_{clk}\), no trecho de 0 a 2~kHz. O erro é sempre menor que 1~\ac{lsb}, como previsto no Capítulo~\ref{cap:metodologia}: o maior valor em toda a faixa é de 0,99986~\ac{lsb}, em 2\,752~Hz, o que corresponde a um erro de frequência de 2,328~mHz, menor que a resolução \(\Delta f\). O padrão em linhas inclinadas vem da parte fracionária de \(f \cdot 2^{32}/f_{clk}\), que avança 0,4967 a cada hertz.
-
-\begin{figure}
-	\caption{Conversão de frequência: (a) palavra de sintonia para as \(2^{18}\) entradas; (b) erro de truncamento.}
-	\label{fig:tb_ftw}
-	\includegraphics[width=\textwidth]{./figuras/tb_frequency_translator}
-	\legend{Fonte~---~Autoria própria.}
-\end{figure}
+O \eng{testbench} percorreu as \(2^{18}\) frequências possíveis, de 0 a 262\,143~Hz, e comparou a palavra de sintonia de cada uma com o valor exato \(f \cdot 2^{32}/f_{clk}\). Como a multiplicação descarta a parte fracionária, a palavra calculada fica sempre a menos de uma unidade do valor exato, como previsto no Capítulo~\ref{cap:metodologia}. O pior caso, em 2\,752~Hz, ficou 0,99986~\ac{lsb} abaixo. Uma unidade de \(M\) é o menor passo de frequência do gerador, 2,33~mHz: no relógio da Figura~\ref{fig:relogio_fase}, é uma marca a mais ou a menos no salto do ponteiro, entre os 4,3 bilhões do mostrador. No pior caso, portanto, a saída fica 2,3~mHz abaixo do pedido, menos de uma parte por milhão em 2\,752~Hz.
 
 \subsection{Acumulador de fase}
 
@@ -239,7 +232,7 @@ Por fim, o \eng{testbench} \cod{tb\_DDS} simula a entidade do topo, com o \ac{pl
 	\legend{Fonte~---~Autoria própria.}
 \end{figure}
 
-\section{Simulação da placa analógica}
+\section{Simulação da placa analógica}\label{sec:spice}
 
 A simulação no LTspice cobre 5~ms, ou cinco períodos do seno de 1~kHz produzido pelo \ac{vhdl}. A Figura~\ref{fig:spice_tempo}(a) mostra a tensão na saída do conversor corrente-tensão e na saída final, depois do ganho, do filtro e do \eng{buffer}; a inversão de fase entre as duas vem do amplificador inversor. A Tabela~\ref{tab:spice} compara os valores obtidos com os calculados no Capítulo~\ref{cap:metodologia}, e todos coincidem. A tensão correspondente ao código 128 não é exatamente zero: como \(I_{FS} = I_{REF} \cdot 255/256\), pela Equação~(\ref{eq:dac0800}), o código 128 dá \(I_{OUT} - \overline{I_{OUT}} = I_{REF}/256\), ou 7,81~mV na saída do conversor.
 
@@ -381,7 +374,7 @@ A Figura~\ref{fig:bancada_fft} mostra os espectros calculados pelo osciloscópio
 
 Em 10~kHz, a saída se afasta do seno perto de cada passagem pelo código 128, com desvios de até 92~\acs{lsb}, e volta a ele logo depois (Figura~\ref{fig:bancada_cruzamento}(a)). Longe dela, o desvio médio fica abaixo de 10~\acs{lsb}. Essa distorção leva a \acs{thd} da saída a \(-17{,}3\)~dBc. Em 1~kHz, ela aparece apenas como marcas estreitas nos cruzamentos (Figura~\ref{fig:osc_ab_seno_1kHz}) e pesa pouco: a perturbação dura alguns microssegundos, e a fração do período que ela ocupa cresce com a frequência.
 
-A comparação com o subtrator localiza a origem. No mesmo seno de 10~kHz, a saída do subtrator segue o seno ajustado com desvio médio abaixo de 1~\acs{lsb} em todas as faixas de código, e a sua \acs{thd} é de \(-46{,}8\)~dBc (Figura~\ref{fig:bancada_cruzamento}(b)). A distorção nasce, portanto, depois do conversor corrente-tensão: no filtro, no amplificador de ganho ou no seguidor. No subtrator, uma distorção de outro tipo aparece só em 30~kHz, perto do vale do seno (Figura~\ref{fig:bancada_cruzamento}(c)). \pendente{Medir as saídas do filtro (U1B) e do amplificador de ganho (U1C) em 10~kHz para identificar o estágio, e investigar a distorção do subtrator em 30~kHz.}
+A comparação com o subtrator localiza a origem. No mesmo seno de 10~kHz, a saída do subtrator segue o seno ajustado com desvio médio abaixo de 1~\acs{lsb} em todas as faixas de código, e a sua \acs{thd} é de \(-46{,}8\)~dBc (Figura~\ref{fig:bancada_cruzamento}(b)). A distorção nasce, portanto, depois do conversor corrente-tensão: no filtro, no amplificador de ganho ou no seguidor. No subtrator, uma distorção de outro tipo aparece só em 30~kHz, perto do vale do seno (Figura~\ref{fig:bancada_cruzamento}(c)). A simulação da Seção~\ref{sec:spice} não mostra nenhuma das duas, mas ela usa amplificadores operacionais genéricos e um modelo do DAC0800 sem picos de chaveamento próprios (Apêndice~\ref{ap:dac0800}). \pendente{Medir as saídas do filtro (U1B) e do amplificador de ganho (U1C) em 10~kHz para identificar o estágio, e investigar a distorção do subtrator em 30~kHz.}
 
 \begin{figure}
 	\caption{Um período do seno, com a amplitude normalizada, na saída e no subtrator.}

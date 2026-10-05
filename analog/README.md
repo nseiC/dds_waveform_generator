@@ -123,7 +123,7 @@ A pasta `simulation/` tem o front-end completo no LTspice 26, alimentado pelos c
 |---|---|
 | `TCC.asc` | Esquemático: DAC0800, conversor I→V, ganho, filtro e buffer (`.tran 5m`), com os nós `DIFFERENTIAL`, `INVERTER`, `FILTERED` e `BUFFERED` |
 | `TCC.net` | Netlist exportada pelo LTspice |
-| `DAC0800.lib`, `DAC0800.asy` | Macromodelo comportamental do DAC0800, feito a partir do datasheet da TI (SNAS538C), e o símbolo |
+| `DAC0800.lib`, `DAC0800.asy` | Macromodelo comportamental do DAC0800, feito a partir do datasheet da TI (SNAS538C), e o símbolo. Vem do repositório [LTSpice-behavioral-IC-lib](https://github.com/nseiC/LTSpice-behavioral-IC-lib/tree/main/DAC0800), onde tem 34 verificações contra o datasheet; o TCC o descreve no Apêndice D |
 | `SOURCES.lib`, `sources.asy` | Subcircuito `sources`: os 8 bits (PWL), ±15 V e +10 V |
 | `FONTES.asc` | Esquemático das fontes que deu origem ao subcircuito `sources` |
 | `pwl/` | PWL de cada bit, código por amostra e saída de um DAC ideal; detalhes em [`pwl/LEIAME.txt`](simulation/pwl/LEIAME.txt) |
