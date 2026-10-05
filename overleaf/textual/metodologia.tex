@@ -136,20 +136,46 @@ Os três blocos foram agrupados na entidade \cod{jtag\_control}, que contém tod
 
 O \ac{pll} gera o clock de 10~MHz dividindo por cinco o oscilador de 50~MHz. O \eng{reset} do sistema vem do botão KEY[0] e da indicação de travamento do \ac{pll}, e passa por um sincronizador (\cod{reset\_sync}): entra em \eng{reset} de forma assíncrona, assim que o botão é pressionado, e sai em sincronia com o clock, três bordas depois de o botão ser solto. Assim, todos os registradores saem do \eng{reset} na mesma borda.
 
-A Tabela~\ref{tab:pinos} mostra a pinagem, a mesma do código legado (Seção~\ref{sec:legado}). O barramento do \ac{dac} usa os pinos 3 a 10 do conector de expansão, e o pino 1 é mantido em nível baixo como referência de terra no cabo. O pino 2 leva o clock de 10~MHz invertido, gerado pela entidade \cod{dac\_clock} com um registrador de saída de taxa dupla (\cod{altddio\_out}), o que evita passar o clock pela lógica. A borda de subida desse clock ocorre 50~ns depois da mudança dos bits, no meio da amostra. O DAC0800 não usa clock, mas o pino permite ligar um \ac{dac} com registrador de entrada e serve de gatilho para o osciloscópio. Dois \eng{LEDs} indicam o travamento do \ac{pll} e a chegada de cada comando do computador.
+A Tabela~\ref{tab:pinos} mostra a pinagem, a mesma do código legado (Seção~\ref{sec:legado}). O barramento do \ac{dac} usa os pinos 3 a 10 do conector de expansão, e o pino 1 é mantido em nível baixo como referência de terra no cabo. O pino 2 leva o clock de 10~MHz invertido, gerado pela entidade \cod{dac\_clock} com um registrador de saída de taxa dupla (\cod{altddio\_out}), o que evita passar o clock pela lógica. A borda de subida desse clock ocorre 50~ns depois da mudança dos bits, no meio da amostra. O DAC0800 não usa clock, mas o pino permite ligar um \ac{dac} com registrador de entrada e serve de gatilho para o osciloscópio. Dois \eng{LEDs} indicam o travamento do \ac{pll} e a chegada de cada comando do computador. A Tabela~\ref{tab:barramento} mostra o caminho de cada bit até o \acs{dac}: do pino do \acs{fpga} ao conector de expansão JP5 da DE2-115, dele ao conector J1 da placa analógica e, por fim, ao pino do DAC0800. O fabricante numera as entradas do DAC0800 do bit mais significativo para o menos significativo, de B1 a B8, e por isso o bit 0 do \acs{fpga} chega à entrada B8, e o bit 7, à B1.
 
 \begin{table}
-	\caption{Pinagem na placa DE2-115.}
+	\caption{Pinagem do \acs{fpga} na placa DE2-115.}
 	\label{tab:pinos}
 	\begin{tabular}{l l l l}\toprule
-		Porta & Pino & Sinal na placa & Padrão de E/S\\\midrule
+		Porta & Pino do \acs{fpga} & Sinal na placa & Padrão de E/S e corrente\\\midrule
 		\cod{clk\_50} & PIN\_Y2 & CLOCK\_50 & LVTTL 3,3~V\\
-		\cod{rst\_n} & PIN\_M23 & KEY[0] & LVTTL 3,3~V\\
-		\cod{dac(0)} a \cod{dac(7)} & PIN\_AB21 a PIN\_AE15 & GPIO[2] a GPIO[9] & LVTTL 3,3~V\\
-		\cod{dac\_clk} & PIN\_AC15 & GPIO[1] & LVTTL 3,3~V\\
-		\cod{dac\_gnd} & PIN\_AB22 & GPIO[0] & LVTTL 3,3~V\\
-		\cod{led\_locked} & PIN\_E21 & LEDG[0] & 2,5~V\\
-		\cod{led\_cmd} & PIN\_E22 & LEDG[1] & 2,5~V\\\bottomrule
+		\cod{rst\_n} & PIN\_M23 & botão KEY[0] & LVTTL 3,3~V\\
+		\cod{dac(0)} & PIN\_AB21 & GPIO[2] & LVTTL 3,3~V, 8~mA\\
+		\cod{dac(1)} & PIN\_Y17 & GPIO[3] & LVTTL 3,3~V, 8~mA\\
+		\cod{dac(2)} & PIN\_AC21 & GPIO[4] & LVTTL 3,3~V, 8~mA\\
+		\cod{dac(3)} & PIN\_Y16 & GPIO[5] & LVTTL 3,3~V, 8~mA\\
+		\cod{dac(4)} & PIN\_AD21 & GPIO[6] & LVTTL 3,3~V, 8~mA\\
+		\cod{dac(5)} & PIN\_AE16 & GPIO[7] & LVTTL 3,3~V, 8~mA\\
+		\cod{dac(6)} & PIN\_AD15 & GPIO[8] & LVTTL 3,3~V, 8~mA\\
+		\cod{dac(7)} & PIN\_AE15 & GPIO[9] & LVTTL 3,3~V, 8~mA\\
+		\cod{dac\_clk} & PIN\_AC15 & GPIO[1] & LVTTL 3,3~V, 8~mA\\
+		\cod{dac\_gnd} & PIN\_AB22 & GPIO[0] & LVTTL 3,3~V, 8~mA\\
+		\cod{led\_locked} & PIN\_E21 & \eng{LED} LEDG[0] & 2,5~V, 8~mA\\
+		\cod{led\_cmd} & PIN\_E22 & \eng{LED} LEDG[1] & 2,5~V, 8~mA\\\bottomrule
+	\end{tabular}
+	\legend{Fonte~---~Autoria própria.}
+\end{table}
+
+\begin{table}
+	\caption{Ligação do barramento, do \acs{fpga} ao DAC0800.}
+	\label{tab:barramento}
+	\begin{tabular}{l l l c c c}\toprule
+		Bit & Porta & Pino do \acs{fpga} & Conector JP5 & Conector J1 & Pino do DAC0800\\\midrule
+		0 (\acs{lsb}) & \cod{dac(0)} & PIN\_AB21 & 3 & 1 & 12 (B8)\\
+		1 & \cod{dac(1)} & PIN\_Y17 & 4 & 2 & 11 (B7)\\
+		2 & \cod{dac(2)} & PIN\_AC21 & 5 & 3 & 10 (B6)\\
+		3 & \cod{dac(3)} & PIN\_Y16 & 6 & 4 & 9 (B5)\\
+		4 & \cod{dac(4)} & PIN\_AD21 & 7 & 5 & 8 (B4)\\
+		5 & \cod{dac(5)} & PIN\_AE16 & 8 & 6 & 7 (B3)\\
+		6 & \cod{dac(6)} & PIN\_AD15 & 9 & 7 & 6 (B2)\\
+		7 (\acs{msb}) & \cod{dac(7)} & PIN\_AE15 & 10 & 8 & 5 (B1)\\
+		--- & \cod{dac\_clk} & PIN\_AC15 & 2 & --- & ---\\
+		--- & \cod{dac\_gnd} & PIN\_AB22 & 1 & --- & ---\\\bottomrule
 	\end{tabular}
 	\legend{Fonte~---~Autoria própria.}
 \end{table}

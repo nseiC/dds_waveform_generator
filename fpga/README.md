@@ -226,6 +226,27 @@ travado.
 | `led_locked` | PIN_E21 | LEDG[0] | 2,5 V |
 | `led_cmd` | PIN_E22 | LEDG[1] | 2,5 V |
 
+### Ligação com a placa analógica
+
+O caminho de cada bit, do pino do FPGA ao DAC0800. As entradas do DAC0800 são numeradas do MSB
+(B1) para o LSB (B8).
+
+| Bit | Porta | Pino do FPGA | GPIO | Conector JP5 (DE2-115) | Conector J1 (placa) | Pino do DAC0800 |
+|---|---|---|---|---|---|---|
+| 0 (LSB) | `dac[0]` | PIN_AB21 | GPIO[2] | 3 | 1 | 12 (B8) |
+| 1 | `dac[1]` | PIN_Y17 | GPIO[3] | 4 | 2 | 11 (B7) |
+| 2 | `dac[2]` | PIN_AC21 | GPIO[4] | 5 | 3 | 10 (B6) |
+| 3 | `dac[3]` | PIN_Y16 | GPIO[5] | 6 | 4 | 9 (B5) |
+| 4 | `dac[4]` | PIN_AD21 | GPIO[6] | 7 | 5 | 8 (B4) |
+| 5 | `dac[5]` | PIN_AE16 | GPIO[7] | 8 | 6 | 7 (B3) |
+| 6 | `dac[6]` | PIN_AD15 | GPIO[8] | 9 | 7 | 6 (B2) |
+| 7 (MSB) | `dac[7]` | PIN_AE15 | GPIO[9] | 10 | 8 | 5 (B1) |
+| — | `dac_clk` | PIN_AC15 | GPIO[1] | 2 | — | — |
+| — | `dac_gnd` | PIN_AB22 | GPIO[0] | 1 | — | — |
+
+No JP5, os pinos 12 e 30 são GND, e os pinos 11 (5 V) e 29 (3,3 V) são alimentação. Os pinos
+ímpares ficam numa fileira e os pares na outra.
+
 A pinagem é a mesma da versão usada na bancada (TCCV1 do projeto anterior), inclusive os padrões
 de I/O, então o cabo atual serve. Os 8 bits saem de registradores de I/O
 (`FAST_OUTPUT_REGISTER`) e mudam juntos, na borda de subida do clock de 10 MHz.
