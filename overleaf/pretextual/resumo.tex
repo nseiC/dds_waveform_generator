@@ -1,4 +1,4 @@
-Este trabalho apresenta um gerador de formas de onda por síntese digital direta, descrito em \acs{vhdl} e implementado em um \acs{fpga}, controlado pelo computador através do Virtual \acs{jtag} e de uma interface gráfica em Python. O gerador produz seno, rampa, sinc e formas arbitrárias, com ajuste fino de frequência. Uma placa analógica, com um conversor digital-analógico e um filtro de reconstrução, converte as amostras em tensão. O projeto foi verificado por simulação e em bancada.
+Este trabalho apresenta um gerador de formas de onda por síntese digital direta em \acs{fpga}, descrito em \acs{vhdl} em blocos encapsulados e verificado por \eng{testbenches} autoverificáveis. A frequência em hertz é convertida na palavra de sintonia por multiplicação em ponto fixo, e o controle usa o Virtual \acs{jtag} do cabo de gravação, com uma interface em Python. Uma placa analógica converte em tensão seno, rampa, sinc e uma forma arbitrária regravável; a frequência medida em bancada coincidiu com a calculada.
 
 \vspace{\onelineskip}
 \noindent Palavras"-chave: síntese digital direta; FPGA; VHDL; gerador de funções; JTAG.

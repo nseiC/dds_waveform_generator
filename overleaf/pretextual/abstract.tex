@@ -1,4 +1,4 @@
-This work presents a direct digital synthesis waveform generator, described in VHDL and implemented on an FPGA, controlled by a computer through Virtual JTAG and a graphical interface in Python. The generator produces sine, ramp, sinc and arbitrary waveforms, with fine frequency tuning. An analog board, with a digital-to-analog converter and a reconstruction filter, converts the samples into voltage. The design was verified by simulation and on the bench.
+This work presents a direct digital synthesis waveform generator on an FPGA, described in VHDL as encapsulated blocks verified by self-checking testbenches. The frequency in hertz is converted into the tuning word by fixed-point multiplication, and control uses Virtual JTAG over the programming cable, with a Python interface. An analog board converts sine, ramp, sinc and a rewritable arbitrary waveform into voltage; the frequency measured on the bench matched the calculated one.
 
 \vspace{\onelineskip}
 \noindent Keywords: direct digital synthesis; FPGA; VHDL; function generator; JTAG.
