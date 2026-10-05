@@ -169,6 +169,7 @@ Todas têm 1024 amostras de 8 bits em offset binary, com o zero do sinal no cód
 | `triangle_1024x8.mif` | Rampa de subida e descida, em fase com o seno | ROM `saw_LUT` |
 | `sinc_1024x8.mif` | `round(128 + 127·sinc((k−512)/64))`, janela x ∈ [−8, 8) | ROM `sinc_LUT` |
 | `ecg_1024x8.mif` | ECG sintético estocástico (modelo ECGSYN) | Conteúdo inicial da RAM `arbitrary_LUT` |
+| `teste_bits_1a4.txt`, `teste_bits_todos.txt` | Trechos que alternam um bit de cada vez em torno do código 128 | Teste dos pesos dos bits do DAC, enviado pela GUI ([resultados](../analog/resultados/README.md#teste-dos-pesos-dos-bits)) |
 
 <details>
 <summary><b>ECG sintético</b></summary>
@@ -365,7 +366,8 @@ TCC. `rtl_virtual_jtag_ip.png` mostra o interior do IP do Virtual JTAG.
 - [x] Controle pelo Virtual JTAG: DR, travessia de domínio de clock e registradores
 - [x] Pinagem da DE2-115 e restrições de tempo, com timing fechado no Quartus
 - [x] 16 testbenches passando no GHDL, com figuras
-- [ ] Validação na placa: controle pela GUI, medidas de frequência e espectro
+- [x] Validação na placa: controle pela GUI, frequência medida a até 12 ppm da calculada pela FTW
+  ([resultados de bancada](../analog/resultados/README.md))
 
 <details>
 <summary><b>Histórico de mudanças</b></summary>

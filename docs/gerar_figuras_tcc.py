@@ -1,9 +1,9 @@
 """Gera as figuras do texto do TCC em overleaf/figuras/.
 
 Desenha as figuras de fundamentação e de sistema (diagrama de blocos do DDS, roda de fase,
-espectros, sistema completo, hierarquia do VHDL, LUTs e filtro) em PDF vetorial, no mesmo
-estilo das figuras dos testbenches, e copia para lá as figuras dos testbenches e as fotos
-da bancada.
+espectros, sistema completo, hierarquia do VHDL, LUTs e filtro) e as da bancada, a partir das
+capturas do osciloscópio em analog/resultados, em PDF vetorial, no mesmo estilo das figuras dos
+testbenches. Copia para lá as figuras dos testbenches, as fotos e as telas do osciloscópio.
 
 Uso (precisa de numpy e matplotlib):  python3 docs/gerar_figuras_tcc.py
 As figuras dos testbenches saem de fpga/testbenches/gerar_figuras.py; rode-o antes se mudarem.
@@ -27,6 +27,7 @@ from matplotlib import patches, ticker  # noqa: E402
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "overleaf" / "figuras"
 SPICE = ROOT / "analog" / "simulation" / "resultados"  # exportações do LTspice (.txt.gz)
+BANCADA = ROOT / "analog" / "resultados"  # capturas do osciloscópio (CSV, PNG e SET)
 
 INK = "#12233A"
 ACCENT = "#E8711A"
@@ -480,6 +481,156 @@ def fig_spice(onda, f, dif, fil):
     salvar(fig, "spice_fft")
 
 
+# ---------------------------------------------------------------------------
+# bancada: capturas do osciloscópio (analog/resultados)
+# ---------------------------------------------------------------------------
+
+FTW_K, FTW_SHIFT, F_CLK = 7205759404, 24, 10e6  # os mesmos do dds_pkg
+# capturas, na ordem do apêndice: saída da placa (AB) e saída do subtrator
+TELAS = [("AB", n) for n in ["seno_10Hz", "seno_100Hz", "seno_1kHz", "seno_10kHz", "rampa_100Hz", "sinc_100Hz",
+                             "ecg_100Hz", "fft_pico_harmonico", "fft_aliasing", "fft_10kHz_subamostrado"]]
+TELAS += [("subtrator", n) for n in ["seno_10kHz", "seno_20kHz", "seno_30kHz"]]
+
+
+def f_dds(f_hz: int) -> float:
+    """Frequência que o FPGA gera de fato para f_hz pedidos (palavra de sintonia truncada)."""
+    return ((f_hz * FTW_K) >> FTW_SHIFT) * F_CLK / 2**32
+
+
+def ler_captura(ponto: str, nome: str) -> tuple[np.ndarray, np.ndarray]:
+    """CSV do TBS1102B: metadados nas colunas 1 e 2; tempo (ou frequência) e valor nas 4 e 5."""
+    x, y = [], []
+    with open(BANCADA / ponto / nome / f"{nome}.csv") as fh:
+        for linha in fh:
+            c = linha.split(",")
+            x.append(float(c[3]))
+            y.append(float(c[4]))
+    return np.array(x), np.array(y)
+
+
+def ajuste_harmonico(t: np.ndarray, v: np.ndarray, f: float, nh: int = 1):
+    """Mínimos quadrados de um nível DC, da componente em f e das harmônicas até nh."""
+    cols = [np.ones_like(t)]
+    for k in range(1, nh + 1):
+        cols += [np.cos(2 * np.pi * k * f * t), np.sin(2 * np.pi * k * f * t)]
+    m = np.column_stack(cols)
+    p, *_ = np.linalg.lstsq(m, v, rcond=None)
+    return p, m
+
+
+def medir_seno(ponto: str, nome: str, f_pedida: int) -> dict:
+    """Frequência, amplitude, SINAD e THD de uma captura de seno.
+
+    A frequência é procurada a até 50 ppm da gerada pelo FPGA (a tolerância do cristal e da
+    base de tempo do osciloscópio); o seno ideal é o da fundamental ajustada, e o SINAD compara
+    a fundamental com todo o resto (harmônicas, ruído e a quantização dos dois conversores)."""
+    t, v = ler_captura(ponto, nome)
+    f0 = f_dds(f_pedida)
+    fs = np.linspace(f0 * (1 - 5e-5), f0 * (1 + 5e-5), 201)
+    erro = [np.sum((v - m @ p) ** 2) for p, m in (ajuste_harmonico(t, v, f) for f in fs)]
+    f = fs[int(np.argmin(erro))]
+    p, m = ajuste_harmonico(t, v, f, 15)
+    a = np.hypot(p[1::2], p[2::2])
+    ideal = m[:, :3] @ p[:3]
+    sinad = 20 * np.log10(a[0] / np.sqrt(2) / np.sqrt(np.mean((v - ideal) ** 2)))
+    return {"ponto": ponto, "nome": nome, "t": t, "v": v, "ideal": ideal, "dc": p[0], "a": a[0], "f": f,
+            "f_dds": f0, "vpp": 2 * a[0], "sinad": sinad, "enob": (sinad - 1.76) / 6.02,
+            "thd": 20 * np.log10(np.sqrt(np.sum(a[1:] ** 2)) / a[0])}
+
+
+def eixo_tempo(ax, t, v, cor=ACCENT, lw=0.9, **kw):
+    """Desenha v (V) em mV contra o tempo em ms ou µs, conforme a janela."""
+    esc, un = (1e6, "µs") if t[-1] - t[0] < 2e-3 else (1e3, "ms")
+    ax.plot((t - t[0]) * esc, v * 1e3, color=cor, lw=lw, **kw)
+    ax.set_xlim(0, (t[-1] - t[0]) * esc)
+    ax.set_xlabel(f"tempo ({un})")
+    ax.grid(color=GRID, lw=0.4)
+    virgula(ax)
+
+
+def fig_bancada_senos(senos: list[dict]):
+    fig, axs = plt.subplots(2, 2, figsize=(LARGURA, 4.4), gridspec_kw={"hspace": 0.62, "wspace": 0.28})
+    for ax, s, rot, f in zip(axs.flat, senos, "abcd", ["10 Hz", "100 Hz", "1 kHz", "10 kHz"]):
+        eixo_tempo(ax, s["t"], s["v"], label="medido")
+        eixo_tempo(ax, s["t"], s["ideal"], cor=INK, lw=0.7, ls=(0, (4, 2)), label="seno ajustado")
+        ax.set_ylabel("tensão (mV)")
+        ax.set_title(f"({rot}) {f}", fontsize=8.5, loc="left")
+    fig.legend(*axs[0, 0].get_legend_handles_labels(), loc="upper right", ncol=2, frameon=False,
+               bbox_to_anchor=(0.99, 1.0))
+    salvar(fig, "bancada_senos")
+
+
+def fig_bancada_formas():
+    fig, axs = plt.subplots(1, 3, figsize=(LARGURA, 1.9), gridspec_kw={"wspace": 0.35})
+    for ax, (nome, titulo), rot in zip(axs, [("rampa_100Hz", "rampa"), ("sinc_100Hz", "sinc"),
+                                            ("ecg_100Hz", "arbitrária (ECG)")], "abc"):
+        t, v = ler_captura("AB", nome)
+        eixo_tempo(ax, t, v)
+        ax.set_title(f"({rot}) {titulo}", fontsize=8.5, loc="left")
+    axs[0].set_ylabel("tensão (mV)")
+    salvar(fig, "bancada_formas")
+
+
+def fig_bancada_cruzamento(senos: list[dict]):
+    """Um período de cada captura, centrado numa subida, com a amplitude normalizada."""
+    fig, axs = plt.subplots(1, 3, figsize=(LARGURA, 2.0), sharey=True, gridspec_kw={"wspace": 0.12})
+    titulos = {("AB", "seno_10kHz"): "(a) saída, 10 kHz", ("subtrator", "seno_10kHz"): "(b) subtrator, 10 kHz",
+               ("subtrator", "seno_30kHz"): "(c) subtrator, 30 kHz"}
+    for ax, s in zip(axs, senos):
+        ideal = s["ideal"] - s["dc"]
+        sobe = np.where((ideal[:-1] < 0) & (ideal[1:] >= 0))[0]
+        periodo = 1 / s["f"]
+        t0 = s["t"][sobe[len(sobe) // 2]]
+        m = np.abs(s["t"] - t0) <= periodo / 2
+        x = (s["t"][m] - t0) * 1e6
+        ax.plot(x, (s["v"][m] - s["dc"]) / s["a"], color=ACCENT, lw=0.9, label="medido")
+        ax.plot(x, ideal[m] / s["a"], color=INK, lw=0.7, ls=(0, (4, 2)), label="seno ajustado")
+        ax.set_xlim(x[0], x[-1])
+        ax.set_ylim(-1.35, 1.35)
+        ax.set_xlabel("tempo (µs)")
+        ax.set_title(titulos[(s["ponto"], s["nome"])], fontsize=8.5, loc="left")
+        ax.grid(color=GRID, lw=0.4)
+        virgula(ax)
+    axs[0].set_ylabel("tensão / amplitude")
+    salvar(fig, "bancada_cruzamento")
+
+
+def fig_bancada_fft():
+    fig, axs = plt.subplots(1, 3, figsize=(LARGURA, 2.0), sharey=True, gridspec_kw={"wspace": 0.12})
+    for ax, (nome, titulo, esc, un), rot in zip(axs, [
+            ("fft_pico_harmonico", "100 Hz, até 2,5 kHz", 1, "Hz"),
+            ("fft_aliasing", "100 Hz, até 50 MHz", 1e-6, "MHz"),
+            ("fft_10kHz_subamostrado", "10 kHz a 2,5 kS/s", 1, "Hz")], "abc"):
+        f, db = ler_captura("AB", nome)
+        ax.plot(f * esc, db - db.max(), color=ACCENT, lw=0.6)
+        ax.set_xlim(0, f[-1] * esc)
+        ax.set_ylim(-80, 5)
+        ax.set_xlabel(f"frequência ({un})")
+        ax.set_title(f"({rot}) {titulo}", fontsize=8.5, loc="left")
+        ax.grid(color=GRID, lw=0.4)
+        virgula(ax, "x")
+    axs[0].set_ylabel("dBc")
+    salvar(fig, "bancada_fft")
+
+
+def bancada() -> None:
+    senos = [medir_seno("AB", n, f) for n, f in
+             [("seno_10Hz", 10), ("seno_100Hz", 100), ("seno_1kHz", 1000), ("seno_10kHz", 10000)]]
+    sub = [medir_seno("subtrator", n, f) for n, f in
+           [("seno_10kHz", 10000), ("seno_20kHz", 20000), ("seno_30kHz", 30000)]]
+    fig_bancada_senos(senos)
+    fig_bancada_formas()
+    fig_bancada_cruzamento([senos[3], sub[0], sub[2]])
+    fig_bancada_fft()
+    for ponto, nome in TELAS:  # telas do osciloscópio, inteiras, para o apêndice
+        shutil.copyfile(BANCADA / ponto / nome / f"{nome}.png", OUT / f"osc_{ponto.lower()}_{nome}.png")
+        print(f"  figuras/osc_{ponto.lower()}_{nome}.png")
+    print("  medidas (ponto, captura, f do FPGA, f ajustada, Vpp, SINAD, ENOB, THD H2-H15):")
+    for s in senos + sub:
+        print(f"    {s['ponto']:9s} {s['nome']:11s} {s['f_dds']:12.5f} Hz {s['f']:12.5f} Hz {s['vpp'] * 1e3:6.0f} mVpp"
+              f"  {s['sinad']:5.1f} dB  {s['enob']:4.2f} bits  {s['thd']:6.1f} dBc")
+
+
 def main() -> None:
     estilo()
     OUT.mkdir(exist_ok=True)
@@ -492,6 +643,7 @@ def main() -> None:
     fig_luts()
     fig_filtro()
     fig_spice(*ler_spice())
+    bancada()
     print(f"  (SFDR da simulação numérica: {sfdr:.1f} dBc)")
     print("Copiando:")
     tb = ROOT / "fpga" / "testbenches" / "figuras"

@@ -8,12 +8,12 @@ O projeto ocupa menos de 1\% dos elementos lógicos do \ac{fpga} e opera com fol
 
 Na simulação da placa analógica, a saída reproduziu o seno gerado pelo \ac{vhdl} com a amplitude, o ganho e o atraso calculados. A distorção harmônica total foi de \(-70{,}9\)~dBc, e a maior componente indesejada, em \(-67\)~dBc após o filtro, é a imagem associada à resolução da tabela, de acordo com o limite de \(6{,}02\,P\). O estágio de saída classe AB, previsto no projeto da placa, foi retirado por distorção, e a saída passou a ser tomada do seguidor de tensão.
 
-\pendente{Completar com os resultados dos ensaios em bancada com o código final.}
+Os ensaios em bancada com o código final confirmaram o funcionamento do conjunto. Controlado pela interface gráfica, o gerador produziu as quatro formas de onda, e a frequência medida ficou a até 12~ppm da calculada, um desvio comum a todas as frequências e atribuído às referências de tempo da placa e do osciloscópio. Até 1~kHz, o seno apresentou distorção harmônica total entre \(-43\) e \(-50\)~dBc, valor limitado pelo osciloscópio de 8~bits. Os ensaios também exigiram depurar o \eng{hardware}. Um teste com tabelas que alternam um bit de cada vez revelou um bit do barramento do \acs{dac} aberto no cabo. A comparação entre a saída e o subtrator mostrou que a distorção que aparece nos cruzamentos por zero em 10~kHz nasce depois do conversor corrente-tensão. \pendente{Completar após a investigação dessa distorção.}
 
 Como trabalhos futuros, propõem-se:
 \begin{itemize}
-	\item realizar os ensaios em bancada com o código final, medindo a frequência ao longo da faixa e o espectro da saída, para comparar o maior espúrio com o previsto;
-	\item comparar a forma de onda e o espectro medidos na placa com os da simulação SPICE;
+	\item identificar o estágio que causa a distorção nos cruzamentos por zero em 10~kHz e a causa da distorção do subtrator em 30~kHz;
+	\item medir o espectro da saída com um instrumento de maior resolução que o osciloscópio de 8~bits, para comparar o maior espúrio e a distorção harmônica com os previstos pela teoria e pela simulação SPICE;
 	\item projetar um estágio de saída com maior capacidade de corrente e baixa distorção, em substituição ao classe AB retirado;
 	\item substituir o DAC0800 por um conversor de maior resolução e menor tempo de acomodação, aproveitando a margem de tempo do \ac{fpga} para elevar o clock e a frequência máxima;
 	\item usar um filtro de reconstrução de ordem mais alta, para atenuar mais as imagens com a mesma banda passante;

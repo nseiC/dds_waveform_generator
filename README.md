@@ -155,7 +155,9 @@ $$
 - [x] Placa analógica projetada, fabricada e medida na bancada
 - [x] Simulação do front-end analógico no LTspice: seno de 1 kHz com THD de −70,9 dBc
 - [x] Estágio de saída classe AB retirado (distorção); a saída é o seguidor de tensão
-- [ ] Validação completa na placa: controle pela GUI, medidas de frequência e espectro
+- [x] Ensaios em bancada com o código final: controle pela GUI, frequência a até 12 ppm da calculada,
+  formas de onda e espectro ([resultados](analog/resultados/README.md))
+- [ ] Distorção nos cruzamentos por zero em 10 kHz, que nasce depois do conversor I→V (em investigação)
 
 O detalhe de cada parte está nos READMEs do [FPGA](fpga/README.md#estado-atual), da
 [placa analógica](analog/README.md) e da [interface](GUI/README.md).

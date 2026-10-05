@@ -18,9 +18,9 @@ hardware além do cabo de gravação da placa.
 </p>
 
 > [!NOTE]
-> Os dois lados do protocolo estão prontos. No FPGA, o caminho do JTAG até a saída do DAC passa
-> nos testbenches, inclusive o envio de uma LUT inteira (`tb_system`). Falta validar na placa
-> ([estado da parte digital](../fpga/README.md#estado-atual)).
+> Validada na placa em 5 de outubro de 2026: frequência, forma de onda e envio de LUTs
+> arbitrárias (o ECG e as tabelas do teste dos bits) pela GUI
+> ([resultados de bancada](../analog/resultados/README.md)).
 
 ## Começo rápido
 

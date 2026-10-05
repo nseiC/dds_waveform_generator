@@ -187,6 +187,35 @@ No espectro (FFT do LTspice, resolução de 200 Hz):
 | Imagens da tabela em 1024·f ± f (1,023 e 1,025 MHz), o limite de 6,02·P | −60,5 dBc | −67,0 dBc |
 | Imagens do clock em 10 MHz ± 1 kHz | −96 dBc | −119 dBc (perto do piso numérico) |
 
+## Resultados em bancada
+
+Medidas com o código final do FPGA (5 out. 2026), na saída da placa (antes do antigo estágio
+classe AB) e na saída do subtrator, logo após o DAC. As telas, os pontos em CSV e a configuração
+do osciloscópio de cada medida estão em [`resultados/`](resultados/README.md).
+
+| Medida | Resultado |
+|---|---|
+| Frequência | 0,7 a 12 ppm acima da calculada pela FTW, um desvio comum às referências de tempo da placa e do osciloscópio |
+| Seno de 10 Hz a 1 kHz na saída | THD de −43 a −50 dBc e SINAD de 34 a 37 dB, limitados pelo osciloscópio de 8 bits |
+| Seno de 10 kHz na saída | distorção nos cruzamentos por zero, THD de −17,3 dBc |
+| Seno de 10 kHz no subtrator | limpo, THD de −46,8 dBc: a distorção nasce depois do conversor I→V (em investigação) |
+| Espectro até 50 MHz | nenhum espúrio acima de −45,6 dBc |
+| Amplitude no subtrator | 2,1 V<sub>pp</sub>, cerca de metade dos 3,97 V<sub>pp</sub> calculados (conferir os componentes montados) |
+
+<table>
+  <tr>
+    <td width="50%"><img src="resultados/AB/seno_10kHz/seno_10kHz.png" alt="Seno de 10 kHz na saída da placa, com distorção nos cruzamentos por zero"></td>
+    <td width="50%"><img src="resultados/subtrator/seno_10kHz/seno_10kHz.png" alt="Seno de 10 kHz na saída do subtrator, sem distorção"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Saída da placa, 10 kHz: distorção nos cruzamentos por zero</sub></td>
+    <td align="center"><sub>Saída do subtrator, 10 kHz: limpo</sub></td>
+  </tr>
+</table>
+
+Antes dessas medidas, um teste com tabelas que alternam um bit de cada vez achou o bit 2 do
+barramento aberto no cabo ([detalhes](resultados/README.md#teste-dos-pesos-dos-bits)).
+
 ## Placa (Altium Designer)
 
 O projeto `layout/TCC.PrjPcb` tem dois documentos: o esquemático `OUTPUT_GEN.SchDoc` e a placa

@@ -278,7 +278,7 @@ A Figura~\ref{fig:spice_fft} mostra o espectro dos dois pontos, calculado pelo L
 	\legend{Fonte~---~Autoria própria.}
 \end{figure}
 
-\section{Ensaios em bancada}
+\section{Ensaios em bancada}\label{sec:bancada}
 
 A Figura~\ref{fig:bancada} mostra a montagem de bancada: a DE2-115, a placa analógica ligada ao conector de expansão, as fontes de \(\pm15\)~V e +10~V e o osciloscópio. Uma medição preliminar da placa analógica, feita em 3 de setembro de 2026 com uma versão anterior do código do \ac{fpga}, é mostrada na Figura~\ref{fig:medicao}: um seno de 100,0~Hz com 5,08~V de pico a pico. \pendente{Confirmar a versão do código usada nessa medição.}
 
@@ -296,4 +296,92 @@ A Figura~\ref{fig:bancada} mostra a montagem de bancada: a DE2-115, a placa anal
 	\legend{Fonte~---~Autoria própria.}
 \end{figure}
 
-\pendente{Ensaios com o código final: controle pela interface gráfica; frequência medida em vários pontos da faixa; as quatro formas de onda e o envio de uma tabela arbitrária; amplitude e ajuste de ganho; e espectro da saída, para comparar o maior espúrio com a Figura~\ref{fig:espectros}.}
+\subsection{Condições dos ensaios}
+
+Os ensaios com o código final foram feitos em 5 de outubro de 2026, com a frequência e a forma de onda escolhidas pela interface gráfica. As medidas usaram um osciloscópio Tektronix TBS1102B, de 100~MHz, 2~GS/s e 8~bits, em modo de amostragem simples e com acoplamento AC. Em cada medida foram salvos a tela e os 2500 pontos do canal em um arquivo \ac{csv}; as formas de onda das figuras desta seção foram desenhadas a partir desses arquivos. As telas estão no Apêndice~\ref{ap:osciloscopio}, e os arquivos, na pasta \cod{analog/resultados/} do repositório.
+
+Foram medidos dois pontos da placa:
+\begin{description}
+	\item[Saída] --- a saída do seguidor de tensão (U1D), onde antes ficava o estágio classe AB e que é hoje a saída do circuito, com o potenciômetro de ganho ajustado para cerca de 0,67~V de pico a pico;
+	\item[Subtrator] --- a saída do amplificador de diferenças que converte as correntes do \acs{dac} em tensão (U1A), logo após o conversor.
+\end{description}
+Durante as medidas, o resistor de realimentação do subtrator (R6) tinha um capacitor em paralelo, de \pendente{valor do capacitor}, acrescentado como teste para atenuar os picos de chaveamento do \acs{dac}.
+
+\subsection{Diagnóstico do barramento do \acs{dac}}
+
+Nos primeiros ensaios, o seno apresentava um serrilhado que crescia com a frequência e se concentrava perto dos cruzamentos por zero. O mesmo efeito aparecia com o código da versão anterior, o que apontava para o \eng{hardware}. Para isolar a causa, foram criadas duas tabelas de teste, \cod{teste\_bits\_1a4.txt} e \cod{teste\_bits\_todos.txt} (em \cod{fpga/lut/}), carregadas na memória arbitrária pela interface gráfica. Cada trecho dessas tabelas alterna um único bit em torno do código 128, de modo que a saída mostra um pulso por bit, com altura proporcional ao peso do bit. Em um conversor correto, cada pulso tem o dobro da altura do anterior.
+
+O pulso do bit~2 não apareceu. Com esse bit sem efeito, a saída percorre só quatro códigos a cada oito e depois salta, o que produz o serrilhado observado. Com o \acs{dac} fora do soquete, a linha desse bit não apresentava nível lógico, apenas o acoplamento das linhas vizinhas, o que indicou um circuito aberto entre o \ac{fpga} e a placa. A causa estava no cabo, junto ao pino 5 do conector de expansão (\acs{gpio}[4]), e foi corrigida.
+
+As capturas a seguir foram feitas depois da correção. Para conferir, o desvio de cada amostra em relação ao seno ajustado foi agrupado pelo resto da divisão do código por oito: a diferença entre os códigos com o bit~2 em 1 e em 0 ficou abaixo de 0,1~\acs{lsb}, contra os 4~\acs{lsb} que o defeito produziria.
+
+\subsection{Frequência e formas de onda}
+
+A Tabela~\ref{tab:bancada} resume as medidas de seno nos dois pontos. A frequência gerada é a que o \ac{fpga} produz de fato, \(M f_{clk}/2^{32}\), com \(M\) calculado pela Equação~(\ref{eq:ftw}); a medida é a do contador do osciloscópio, de seis dígitos. A tabela traz também a amplitude de pico a pico, a \ac{sinad} e a \ac{thd}, calculadas a partir dos pontos de cada captura. Todas as medidas ficaram entre 0,7 e 12~ppm acima da frequência gerada, a maioria com cerca de 10~ppm. Esse desvio comum a todas as frequências é a diferença entre o oscilador de 50~MHz da DE2-115 e a base de tempo do osciloscópio, ambos com tolerância dessa ordem. A conversão de frequência, portanto, não acrescenta erro mensurável. Em 10~Hz o contador não mede, mas o ajuste de um seno aos pontos deu 9,99779~Hz, em acordo com os 9,99775~Hz previstos. Nessa frequência, o truncamento da palavra de sintonia, de até 2,33~mHz, fica visível: 225~ppm abaixo dos 10~Hz pedidos.
+
+\begin{table}
+	\caption{Medidas de seno em bancada, na saída e no subtrator.}
+	\label{tab:bancada}
+	\begin{tabular}{l r r r r r r}\toprule
+		Ponto & Pedida & Gerada (Hz) & Medida (Hz) & \(V_{pp}\) (mV) & \acs{sinad} (dB) & \acs{thd} (dBc)\\\midrule
+		Saída & 10~Hz & 9,99775 & --- & 549 & 35,6 & \(-50{,}4\)\\
+		Saída & 100~Hz & 99,99843 & 99,9994 & 673 & 37,2 & \(-48{,}9\)\\
+		Saída & 1~kHz & 999,99830 & 1\,000,01 & 677 & 34,1 & \(-43{,}0\)\\
+		Saída & 10~kHz & 9\,999,9993 & 10\,000,1 & 667 & 15,6 & \(-17{,}3\)\\
+		Subtrator & 10~kHz & 9\,999,9993 & 10\,000,1 & 2\,118 & 32,3 & \(-46{,}8\)\\
+		Subtrator & 20~kHz & 19\,999,9986 & 20\,000,2 & 2\,105 & 31,7 & \(-42{,}8\)\\
+		Subtrator & 30~kHz & 29\,999,9979 & 30\,000,3 & 2\,100 & 17,0 & \(-17{,}2\)\\\bottomrule
+	\end{tabular}
+	\legend{Fonte~---~Autoria própria.}
+\end{table}
+
+A Figura~\ref{fig:bancada_senos} mostra os senos medidos na saída, com o seno ajustado a cada captura. Até 1~kHz, a medida se sobrepõe ao seno ajustado; em 10~kHz, aparece a distorção nos cruzamentos por zero, discutida adiante. A amplitude ficou constante de 100~Hz a 10~kHz. Em 10~Hz, a amplitude menor, de 549~mV, vem do acoplamento AC do osciloscópio, cujo corte fica perto de 10~Hz, e não do gerador.
+
+\begin{figure}
+	\caption{Senos medidos na saída da placa, com o seno ajustado a cada captura.}
+	\label{fig:bancada_senos}
+	\includegraphics[width=\textwidth]{./figuras/bancada_senos}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+A \acs{sinad}, que compara a fundamental com todo o restante (harmônicas, ruído e quantização), ficou entre 34,1 e 37,2~dB até 1~kHz, o que corresponde a um \ac{enob} de 5,4 a 5,9~bits. Esse valor é limitado pela própria medida. Na escala de 100~mV/div, o conversor de 8~bits do osciloscópio tem degraus de 4~mV, e o seu erro de quantização, somado ao do \acs{dac}, cujo \acs{lsb} vale 2,65~mV nesse ponto, já limita a \acs{sinad} a cerca de 45~dB; o restante vem de ruído e da ondulação de 10~MHz. Pelo mesmo motivo, a \acs{thd} medida, de \(-43\) a \(-50\)~dBc, não permite confirmar os \(-70{,}9\)~dBc da simulação, o que exigiria um instrumento de maior resolução.
+
+No subtrator, a amplitude foi de 2,1~V de pico a pico, cerca de metade dos 3,97~V calculados para a corrente de escala completa de 1,99~mA em 1~k\(\Omega\) (Tabela~\ref{tab:spice}). \pendente{Verificar a corrente de referência e os resistores do conversor corrente-tensão montados na placa.}
+
+A Figura~\ref{fig:bancada_formas} mostra as demais formas de onda em 100~Hz: a rampa, a função sinc e a forma arbitrária, com a tabela do \ac{ecg} que a memória carrega ao ligar. Essa tabela tem dois batimentos por período, e por isso o contador mediu 199,998~Hz. Na rampa e na sinc, o contador mediu 99,9985 e 99,9993~Hz, também a menos de 10~ppm da frequência gerada.
+
+\begin{figure}
+	\caption{Demais formas de onda medidas na saída da placa, em 100~Hz.}
+	\label{fig:bancada_formas}
+	\includegraphics[width=\textwidth]{./figuras/bancada_formas}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\subsection{Espectro}
+
+A Figura~\ref{fig:bancada_fft} mostra os espectros calculados pelo osciloscópio na saída, com 1024 pontos e janela retangular, normalizados pela maior componente:
+\begin{description}
+	\item[Até 2,5~kHz] --- (a), o seno de 100~Hz amostrado a 5~kS/s: a fundamental e o espalhamento da janela retangular, que encobre as harmônicas;
+	\item[Até 50~MHz] --- (b), o mesmo seno amostrado a 100~MS/s. A faixa inclui as imagens em torno de \(f_{clk}\), mas nenhuma componente passou de \(-45{,}6\)~dBc (em 1,46~MHz), e as demais ficaram abaixo de \(-46\)~dBc, perto do piso do instrumento. As imagens em \(f_{clk} \pm f_{out}\), que a simulação previu em \(-119\)~dBc, ficam abaixo desse piso;
+	\item[Seno de 10~kHz a 2,5~kS/s] --- (c), abaixo da taxa de Nyquist. A fundamental aparece dobrada em 101~Hz, \(|10\,000 - 4 \cdot 2\,525|\), e as harmônicas da distorção discutida a seguir aparecem em 303, 505 e 606~Hz e acima. É o mesmo fenômeno das imagens do \acs{dds}, causado aqui pela amostragem do instrumento.
+\end{description}
+
+\begin{figure}
+	\caption{Espectros da saída da placa calculados pelo osciloscópio: (a) seno de 100~Hz, até 2,5~kHz; (b) seno de 100~Hz, até 50~MHz; (c) seno de 10~kHz amostrado a 2,5~kS/s.}
+	\label{fig:bancada_fft}
+	\includegraphics[width=\textwidth]{./figuras/bancada_fft}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\subsection{Distorção no cruzamento por zero}
+
+Em 10~kHz, a saída se afasta do seno perto de cada passagem pelo código 128, com desvios de até 92~\acs{lsb}, e volta a ele logo depois (Figura~\ref{fig:bancada_cruzamento}(a)). Longe dela, o desvio médio fica abaixo de 10~\acs{lsb}. Essa distorção leva a \acs{thd} da saída a \(-17{,}3\)~dBc. Em 1~kHz, ela aparece apenas como marcas estreitas nos cruzamentos (Figura~\ref{fig:osc_ab_seno_1kHz}) e pesa pouco: a perturbação dura alguns microssegundos, e a fração do período que ela ocupa cresce com a frequência.
+
+A comparação com o subtrator localiza a origem. No mesmo seno de 10~kHz, a saída do subtrator segue o seno ajustado com desvio médio abaixo de 1~\acs{lsb} em todas as faixas de código, e a sua \acs{thd} é de \(-46{,}8\)~dBc (Figura~\ref{fig:bancada_cruzamento}(b)). A distorção nasce, portanto, depois do conversor corrente-tensão: no filtro, no amplificador de ganho ou no seguidor. No subtrator, uma distorção de outro tipo aparece só em 30~kHz, perto do vale do seno (Figura~\ref{fig:bancada_cruzamento}(c)). \pendente{Medir as saídas do filtro (U1B) e do amplificador de ganho (U1C) em 10~kHz para identificar o estágio, e investigar a distorção do subtrator em 30~kHz.}
+
+\begin{figure}
+	\caption{Um período do seno, com a amplitude normalizada, na saída e no subtrator.}
+	\label{fig:bancada_cruzamento}
+	\includegraphics[width=\textwidth]{./figuras/bancada_cruzamento}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
