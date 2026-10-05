@@ -1,0 +1,63 @@
+Este apêndice apresenta os programas usados no projeto, do \ac{fpga} à placa analógica e ao texto deste trabalho.
+
+O Intel Quartus Prime Lite, versão 18.1 (Figura~\ref{fig:soft_quartus}), fez a síntese, o posicionamento, o roteamento e a análise de tempo do projeto digital. Dele também foram usados o RTL Viewer, o Platform Designer, onde foi gerado o \ac{ip} do Virtual \ac{jtag}, e o programador. O utilitário \cod{quartus\_stp} faz a ligação entre a interface gráfica e o USB-Blaster.
+
+\begin{figure}
+	\caption{Logotipo do Intel Quartus Prime.}
+	\label{fig:soft_quartus}
+	\includegraphics[width=0.2\textwidth]{./figuras/soft_quartus}
+	\legend{Fonte~---~Intel.}
+\end{figure}
+
+O LTspice, versão 26, da Analog Devices (Figura~\ref{fig:soft_ltspice}), simulou a placa analógica com o modelo do DAC0800 descrito no Apêndice~\ref{ap:dac0800}.
+
+\begin{figure}
+	\caption{Logotipo do LTspice.}
+	\label{fig:soft_ltspice}
+	\includegraphics[width=0.25\textwidth]{./figuras/soft_ltspice}
+	\legend{Fonte~---~Analog Devices.}
+\end{figure}
+
+O Altium Designer (Figura~\ref{fig:soft_altium}) foi usado no esquemático e no layout da placa analógica.
+
+\begin{figure}
+	\caption{Logotipo do Altium Designer.}
+	\label{fig:soft_altium}
+	\includegraphics[width=0.3\textwidth]{./figuras/soft_altium}
+	\legend{Fonte~---~Altium.}
+\end{figure}
+
+O Visual Studio Code, da Microsoft (Figura~\ref{fig:soft_vscode}), foi o editor do código \ac{vhdl}, dos \eng{scripts} e da interface em Python e do texto deste trabalho.
+
+\begin{figure}
+	\caption{Logotipo do Visual Studio Code.}
+	\label{fig:soft_vscode}
+	\includegraphics[width=0.2\textwidth]{./figuras/soft_vscode}
+	\legend{Fonte~---~Microsoft.}
+\end{figure}
+
+O Claude, assistente de inteligência artificial da Anthropic, usado pelo Claude Code (Figura~\ref{fig:soft_claude}), apoiou o autor, sob sua orientação e revisão, na escrita do código \ac{vhdl} e dos \eng{testbenches}, dos \eng{scripts} e da interface, da documentação e do texto, e na análise das medidas.
+
+\begin{figure}
+	\caption{Logotipo do Claude.}
+	\label{fig:soft_claude}
+	\includegraphics[width=0.2\textwidth]{./figuras/soft_claude}
+	\legend{Fonte~---~Anthropic.}
+\end{figure}
+
+A Tabela~\ref{tab:outros_softwares} reúne os demais programas usados.
+
+\begin{table}
+	\caption{Outros programas usados no projeto.}
+	\label{tab:outros_softwares}
+	\begin{tabular}{p{0.32\textwidth} p{0.58\textwidth}}\toprule
+		Programa & Uso\\\midrule
+		GHDL 5.0.1 & simulação dos 16 \eng{testbenches} do projeto digital\\
+		Python 3.12, com Tkinter, NumPy, Matplotlib e PyInstaller & interface gráfica, executável da interface e \eng{scripts} das figuras\\
+		LaTeX (TeX Live e Overleaf) & texto deste trabalho, no modelo da \acs{utfpr}\\
+		KiCad & visualização do projeto da placa importado do Altium, para as imagens do esquemático, do layout e da vista 3D\\
+		ModelSim-Altera & simulação do código legado\\
+		Git e GitHub & controle de versões e publicação do repositório\\\bottomrule
+	\end{tabular}
+	\legend{Fonte~---~Autoria própria.}
+\end{table}

@@ -141,6 +141,8 @@ $$
 | [`fpga/legado/`](fpga/legado/) | Versão anterior do gerador, ponto de partida do projeto |
 | [`analog/`](analog/) | Placa no Altium (`layout/`), simulação no LTspice (`simulation/`), modelo SPICE do DAC0800 (`modelos/`, copiado do [LTSpice-behavioral-IC-lib](https://github.com/nseiC/LTSpice-behavioral-IC-lib)), resultados de bancada (`resultados/`) e fotos (`figuras/`) |
 | [`GUI/`](GUI/) | Interface em Python e a biblioteca `dds_jtag` |
+| [`instruments/`](instruments/) | Instrumentos usados no desenvolvimento e na bancada |
+| [`softwares/`](softwares/) | Programas usados no projeto |
 | [`docs/`](docs/) | Logo, figuras, a roda de fase (`jogo/`) e o script que gera as figuras |
 | [`overleaf/`](overleaf/) | Texto do TCC em LaTeX, no modelo da COELE-CM (UTFPR Campo Mourão) do prof. Osmar Tormena Júnior |
 
