@@ -39,7 +39,7 @@ LARGURA = 6.3  # 16 cm
 
 # figuras dos testbenches usadas no texto
 TESTBENCHES = [
-    "tb_frequency_translator", "tb_phase_accumulator", "tb_LUT_tabelas", "tb_LUT_latencia",
+    "tb_frequency_translator", "tb_LUT_tabelas", "tb_LUT_latencia",
     "tb_dds_core_formas", "tb_dds_core_latencia", "tb_vjtag_dr", "tb_cmd_sync", "tb_jtag_control",
     "tb_system_visao_geral", "tb_system_detalhes", "tb_DDS_pll", "tb_DDS_saida",
     # blocos menores (Apêndice B)
@@ -631,12 +631,66 @@ def bancada() -> None:
               f"  {s['sinad']:5.1f} dB  {s['enob']:4.2f} bits  {s['thd']:6.1f} dBc")
 
 
+def fig_relogio_fase():
+    """O acumulador de 32 bits como um relógio de um só ponteiro, para três valores de M.
+
+    Ilustração fora de escala: o mostrador real tem 2^32 marcas e 1024 setores; aqui os setores
+    aparecem como 64 traços, e os saltos do ponteiro são desenhados como pontos."""
+    fig, axs = plt.subplots(1, 3, figsize=(LARGURA, 2.75))
+    casos = [
+        ("$M = 1$", "uma volta a cada 7 min 10 s", "2,33 mHz: o menor passo"),
+        ("$M = 429\\,496$", "uma volta a cada 10 000 clocks", "1 kHz"),
+        ("$M = 112\\,589\\,561$", "uma volta a cada 38 clocks", "262 kHz: a máxima"),
+    ]
+    for i, (ax, (m, volta, freq)) in enumerate(zip(axs, casos)):
+        ax.set_xlim(-1.45, 1.45)
+        ax.set_ylim(-1.55, 1.3)
+        ax.set_aspect("equal")
+        ax.axis("off")
+        ax.add_patch(patches.Circle((0, 0), 1.0, fill=False, color=INK, lw=1.0))
+        for s in range(64):  # setores (endereços da tabela)
+            a = np.pi / 2 - 2 * np.pi * s / 64
+            r0 = 0.9 if s % 16 else 0.84
+            ax.plot([r0 * np.cos(a), np.cos(a)], [r0 * np.sin(a), np.sin(a)], color=GRAY, lw=0.5)
+        if i == 0:  # M = 1: em um segundo, o ponteiro anda 0,84 grau; aqui, exagerado
+            ang = np.linspace(np.pi / 2, np.pi / 2 - np.radians(10), 30)
+            ax.plot(1.08 * np.cos(ang), 1.08 * np.sin(ang), color=ACCENT, lw=1.6)
+            ax.text(0.3, 1.1, "em 1 s: 0,84°", fontsize=7, color=ACCENT, ha="left", va="bottom")
+            fim = np.pi / 2 - np.radians(10)
+        elif i == 1:  # 1 kHz: cerca de 10 clocks por setor; uma lupa mostra um setor
+            for k in range(160):
+                a = np.pi / 2 - 2 * np.pi * k / 160
+                ax.plot(0.97 * np.cos(a), 0.97 * np.sin(a), ".", color=ACCENT, ms=1.2)
+            ax.add_patch(patches.FancyBboxPatch((-0.38, -0.62), 0.76, 0.26, boxstyle="round,pad=0.02,rounding_size=0.05",
+                                                facecolor="white", edgecolor=INK, lw=0.7))
+            for x in (-0.31, 0.31):  # as bordas de um setor, ampliado
+                ax.plot([x, x], [-0.6, -0.38], color=GRAY, lw=0.8)
+            for k in range(10):
+                ax.plot(-0.27 + 0.06 * k, -0.49, ".", color=ACCENT, ms=3.2)
+            ax.plot([0, 0], [-0.36, -0.95], color=GRAY, lw=0.5, ls=":")
+            ax.text(0, -0.3, "1 setor ≈ 10 clocks", fontsize=6.5, ha="center", va="bottom", color=INK)
+            fim = np.pi / 2 - 2 * np.pi * 0.08
+        else:  # frequência máxima: 38 saltos por volta
+            for k in range(38):
+                a = np.pi / 2 - 2 * np.pi * k * 112589561 / 2**32
+                ax.plot(np.cos(a), np.sin(a), "o", color=ACCENT, ms=2.6)
+            fim = np.pi / 2 - 2 * np.pi * 112589561 / 2**32
+        ax.annotate("", xy=(0.78 * np.cos(fim), 0.78 * np.sin(fim)), xytext=(0, 0),
+                    arrowprops={"arrowstyle": "-|>", "color": INK, "lw": 1.1, "mutation_scale": 8})
+        ax.plot(0, 0, "o", color=INK, ms=3)
+        ax.text(0, 1.22, m, fontsize=8.5, ha="center", va="bottom")
+        ax.text(0, -1.12, volta, fontsize=7.5, ha="center", va="top", color=INK)
+        ax.text(0, -1.33, freq, fontsize=7.5, ha="center", va="top", color=ACCENT)
+    salvar(fig, "relogio_fase")
+
+
 def main() -> None:
     estilo()
     OUT.mkdir(exist_ok=True)
     print("Desenhando:")
     fig_dds_blocos()
     fig_roda_fase()
+    fig_relogio_fase()
     sfdr = fig_espectros()
     fig_sistema()
     fig_hierarquia()

@@ -120,6 +120,7 @@ A quantização da amostra em 8 bits limita a relação sinal-ruído a cerca de
 | `jtag.qsys`, `jtag/` | Virtual JTAG (Platform Designer), IR de 2 bits |
 | `lut/` | Tabelas `.mif` das formas de onda ([abaixo](#formas-de-onda-lut)) |
 | `testbenches/` | Um testbench por bloco, o script que roda todos, as figuras e as visões RTL do Quartus ([Testbenches](#testbenches)) |
+| `legado/` | Versão anterior, usada na bancada até setembro de 2026: seno de 256 posições a 1 MHz, frequências pelas chaves ([README](legado/README.md)) |
 
 <details>
 <summary><b>Como a frequência vira FTW sem divisor</b> (<code>frequency_translator</code>)</summary>

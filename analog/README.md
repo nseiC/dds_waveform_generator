@@ -200,7 +200,7 @@ do osciloscópio de cada medida estão em [`resultados/`](resultados/README.md).
 | Seno de 10 kHz na saída | distorção nos cruzamentos por zero, THD de −17,3 dBc |
 | Seno de 10 kHz no subtrator | limpo, THD de −46,8 dBc: a distorção nasce depois do conversor I→V (em investigação) |
 | Espectro até 50 MHz | nenhum espúrio acima de −45,6 dBc |
-| Amplitude no subtrator | 2,1 V<sub>pp</sub>, cerca de metade dos 3,97 V<sub>pp</sub> calculados (conferir os componentes montados) |
+| Amplitude no subtrator | 2,1 V<sub>pp</sub>, cerca de metade dos 3,97 V<sub>pp</sub> calculados: provavelmente só uma das duas correntes do DAC chega ao subtrator (em verificação) |
 
 <table>
   <tr>

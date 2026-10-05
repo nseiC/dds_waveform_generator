@@ -1,6 +1,6 @@
 \chapter{Metodologia}\label{cap:metodologia}
 
-Este capítulo descreve o projeto do gerador. Primeiro, apresenta a visão geral do sistema e suas especificações; em seguida, o projeto do núcleo digital, do controle pelo computador, da verificação por simulação, da interface com o usuário e da placa analógica. Todos os arquivos do projeto (código \ac{vhdl}, \eng{testbenches}, interface, projeto da placa e simulações) estão disponíveis no repositório do trabalho \cite{seifert2026}; a organização do repositório é descrita no Apêndice~\ref{ap:repositorio}.
+Este capítulo descreve o projeto do gerador. Primeiro, apresenta a visão geral do sistema, suas especificações e a versão anterior do gerador, que serviu de ponto de partida; em seguida, o projeto do núcleo digital, do controle pelo computador, da verificação por simulação, da interface com o usuário e da placa analógica. Todos os arquivos do projeto (código \ac{vhdl}, \eng{testbenches}, interface, projeto da placa e simulações) estão disponíveis no repositório do trabalho \cite{seifert2026}; a organização do repositório é descrita no Apêndice~\ref{ap:repositorio}.
 
 \section{Visão geral do sistema}
 
@@ -34,6 +34,29 @@ A frequência é pedida pelo computador como um inteiro em hertz, de 18~bits, qu
 		Forma inicial da tabela arbitrária & eletrocardiograma sintético\\
 		Configuração após o \eng{reset} & seno de 1~kHz\\
 		Controle & computador, via Virtual \ac{jtag} e USB-Blaster\\\bottomrule
+	\end{tabular}
+	\legend{Fonte~---~Autoria própria.}
+\end{table}
+
+\section{Ponto de partida: o código legado}\label{sec:legado}
+
+O projeto partiu de uma versão anterior do gerador, usada em bancada até setembro de 2026 e guardada no repositório em \cod{fpga/legado/}. Essa versão segue a arquitetura clássica da Figura~\ref{fig:dds_blocos}: um acumulador de fase de 32~bits e uma tabela de seno de 256 posições de 8~bits, endereçada pelos 8~bits mais significativos da fase. Todo o circuito roda no oscilador de 50~MHz da placa. Um contador gera um pulso de habilitação a cada 50 ciclos, de modo que o acumulador avança e o \ac{dac} recebe uma amostra nova a 1~MHz. A palavra de sintonia vem de cinco constantes calculadas à mão e escolhidas pelas chaves SW0 a SW4 da placa: 100~Hz, 1~kHz, 10~kHz, 100~kHz e 300~kHz. A amostra passa por um registrador antes dos pinos, e o pino 2 do conector de expansão leva um clock de 1~MHz para um \ac{dac} com registrador de entrada.
+
+Essa versão comprovou a cadeia completa, do \ac{fpga} à placa analógica, mas suas limitações orientaram o projeto final (Tabela~\ref{tab:legado}). Ela só gerava senos, em cinco frequências fixas, e qualquer outra frequência exigia recalcular a constante e recompilar o projeto. Com a taxa de 1~MHz, a 300~kHz restavam pouco mais de três amostras por período, e a tabela de 256 posições limita o maior espúrio de truncamento de fase a cerca de \(-48\)~dBc, pela Equação~(\ref{eq:sfdr}). O código tinha três entidades, com o divisor, a seleção de frequência e o registrador de saída reunidos no topo, e foi verificado apenas por inspeção visual das formas de onda no simulador. Do código legado, o projeto final manteve a pinagem do \ac{dac}, para que a placa analógica e o cabo continuassem os mesmos, e o registrador de saída.
+
+\begin{table}
+	\caption{Comparação entre o código legado e o projeto final.}
+	\label{tab:legado}
+	\begin{tabular}{p{0.2\textwidth} p{0.36\textwidth} p{0.36\textwidth}}\toprule
+		& Código legado & Projeto final\\\midrule
+		Taxa de amostras & 1~MHz, habilitação a cada 50 ciclos de 50~MHz & 10~MHz, gerada por um \ac{pll}\\
+		Tabelas & seno, \(256 \times 8\)~bits & seno, rampa, sinc e arbitrária regravável, \(1024 \times 8\)~bits\\
+		Frequência & cinco valores fixos, de 100~Hz a 300~kHz & qualquer inteiro de 0 a 262\,143~Hz\\
+		Palavra de sintonia & constantes calculadas à mão & multiplicação em ponto fixo no \ac{fpga}\\
+		Controle & chaves da placa & computador, pelo Virtual \ac{jtag}\\
+		Organização & três entidades & uma entidade por função\\
+		Verificação & inspeção visual no simulador & 16 \eng{testbenches} auto-verificáveis\\
+		Recursos & 72 elementos lógicos e 2\,048 bits de memória & 378 elementos lógicos e 32\,768 bits de memória\\\bottomrule
 	\end{tabular}
 	\legend{Fonte~---~Autoria própria.}
 \end{table}
@@ -113,7 +136,7 @@ Os três blocos foram agrupados na entidade \cod{jtag\_control}, que contém tod
 
 O \ac{pll} gera o clock de 10~MHz dividindo por cinco o oscilador de 50~MHz. O \eng{reset} do sistema vem do botão KEY[0] e da indicação de travamento do \ac{pll}, e passa por um sincronizador (\cod{reset\_sync}): entra em \eng{reset} de forma assíncrona, assim que o botão é pressionado, e sai em sincronia com o clock, três bordas depois de o botão ser solto. Assim, todos os registradores saem do \eng{reset} na mesma borda.
 
-A Tabela~\ref{tab:pinos} mostra a pinagem, a mesma de uma versão anterior usada em bancada. O barramento do \ac{dac} usa os pinos 3 a 10 do conector de expansão, e o pino 1 é mantido em nível baixo como referência de terra no cabo. O pino 2 leva o clock de 10~MHz invertido, gerado pela entidade \cod{dac\_clock} com um registrador de saída de taxa dupla (\cod{altddio\_out}), o que evita passar o clock pela lógica. A borda de subida desse clock ocorre 50~ns depois da mudança dos bits, no meio da amostra. O DAC0800 não usa clock, mas o pino permite ligar um \ac{dac} com registrador de entrada e serve de gatilho para o osciloscópio. Dois \eng{LEDs} indicam o travamento do \ac{pll} e a chegada de cada comando do computador.
+A Tabela~\ref{tab:pinos} mostra a pinagem, a mesma do código legado (Seção~\ref{sec:legado}). O barramento do \ac{dac} usa os pinos 3 a 10 do conector de expansão, e o pino 1 é mantido em nível baixo como referência de terra no cabo. O pino 2 leva o clock de 10~MHz invertido, gerado pela entidade \cod{dac\_clock} com um registrador de saída de taxa dupla (\cod{altddio\_out}), o que evita passar o clock pela lógica. A borda de subida desse clock ocorre 50~ns depois da mudança dos bits, no meio da amostra. O DAC0800 não usa clock, mas o pino permite ligar um \ac{dac} com registrador de entrada e serve de gatilho para o osciloscópio. Dois \eng{LEDs} indicam o travamento do \ac{pll} e a chegada de cada comando do computador.
 
 \begin{table}
 	\caption{Pinagem na placa DE2-115.}

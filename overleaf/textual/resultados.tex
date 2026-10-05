@@ -71,14 +71,18 @@ A Figura~\ref{fig:rtl_acc} mostra o acumulador de fase no RTL: o conversor de fr
 	\legend{Fonte~---~Autoria própria.}
 \end{figure}
 
-A Figura~\ref{fig:tb_acc} mostra o endereço da tabela durante a simulação do acumulador de fase. Em 1~kHz, a palavra de sintonia é 429\,496, e a frequência gerada é de 999,9983~Hz; o endereço percorre os 1024 valores em rampas de 1~ms, e três voltas se completam em 30\,001 clocks (Figura~\ref{fig:tb_acc}(a)). As Figuras~\ref{fig:tb_acc}(b) e (c) mostram as trocas de frequência com o acumulador em operação: em cada troca, o endereço continua do valor em que estava, sem salto, e passa a avançar no novo passo. Com 0~Hz, a fase permanece parada. Em todos os clocks, o endereço coincidiu com o do modelo de referência.
+Para entender o que esse circuito faz, vale imaginar o acumulador como um relógio de um só ponteiro, com \(2^{32}\) marcas em volta do mostrador, cerca de 4,3 bilhões (Figura~\ref{fig:relogio_fase}). A cada clock, dez milhões de vezes por segundo, o ponteiro salta \(M\) marcas, e quando passa do topo continua a contagem do início, como um relógio de verdade. Cada volta completa é um período do sinal, e a frequência é o número de voltas por segundo. A tabela não enxerga as marcas uma a uma: o mostrador é dividido em 1024 setores, um por endereço, e a amostra só muda quando o ponteiro entra em outro setor. A roda de fase da Figura~\ref{fig:roda_fase} mostra a mesma ideia em escala reduzida.
 
 \begin{figure}
-	\caption{Endereço da tabela no acumulador de fase: (a) em 1~kHz; (b) e (c) nas trocas de frequência.}
-	\label{fig:tb_acc}
-	\includegraphics[width=\textwidth]{./figuras/tb_phase_accumulator}
+	\caption{O acumulador de fase como um relógio de \(2^{32}\) marcas e 1024 setores, para três valores de \(M\). Ilustração fora de escala.}
+	\label{fig:relogio_fase}
+	\includegraphics[width=\textwidth]{./figuras/relogio_fase}
 	\legend{Fonte~---~Autoria própria.}
 \end{figure}
+
+Com o menor salto possível, \(M = 1\), o ponteiro anda dez milhões de marcas por segundo, o que não chega a um grau, e leva 429,5~s, pouco mais de sete minutos, para dar uma volta. A frequência é de 2,33~mHz, o menor passo do gerador: cada unidade a mais em \(M\) acrescenta 2,33~mHz, e essa é a resolução \(\Delta f\). Para gerar 1~kHz, o ponteiro precisa dar uma volta a cada 10\,000 clocks, o que pede \(M = 2^{32}/10\,000 = 429\,496{,}7\). Como \(M\) é inteiro, o gerador usa 429\,496 e produz 999,9983~Hz, a 1,7~mHz do pedido, menos de um passo de resolução. Nesse caso, o ponteiro passa cerca de dez clocks em cada setor, e cada amostra da tabela se repete cerca de dez vezes. Na frequência máxima, de 262\,143~Hz, o salto é tão grande que a volta se completa em 38 clocks, e o ponteiro pula cerca de 27 setores de cada vez.
+
+No \eng{testbench}, o endereço da tabela coincidiu com o do modelo de referência em todos os clocks, em 1~kHz e em trocas de frequência com o acumulador em operação. Em cada troca, o ponteiro continua do ponto em que estava e só passa a saltar com o novo \(M\). Por isso a troca de frequência não produz salto de fase. Com 0~Hz, o ponteiro fica parado.
 
 \subsection{Tabelas de forma de onda}
 
@@ -280,7 +284,7 @@ A Figura~\ref{fig:spice_fft} mostra o espectro dos dois pontos, calculado pelo L
 
 \section{Ensaios em bancada}\label{sec:bancada}
 
-A Figura~\ref{fig:bancada} mostra a montagem de bancada: a DE2-115, a placa analógica ligada ao conector de expansão, as fontes de \(\pm15\)~V e +10~V e o osciloscópio. Uma medição preliminar da placa analógica, feita em 3 de setembro de 2026 com uma versão anterior do código do \ac{fpga}, é mostrada na Figura~\ref{fig:medicao}: um seno de 100,0~Hz com 5,08~V de pico a pico. \pendente{Confirmar a versão do código usada nessa medição.}
+A Figura~\ref{fig:bancada} mostra a montagem de bancada: a DE2-115, a placa analógica ligada ao conector de expansão, as fontes de \(\pm15\)~V e +10~V e o osciloscópio. Uma medição preliminar da placa analógica, feita em 3 de setembro de 2026 com o código legado (Seção~\ref{sec:legado}), é mostrada na Figura~\ref{fig:medicao}: um seno de 100,0~Hz com 5,08~V de pico a pico.
 
 \begin{figure}
 	\caption{Montagem de bancada.}
@@ -305,11 +309,11 @@ Foram medidos dois pontos da placa:
 	\item[Saída] --- a saída do seguidor de tensão (U1D), onde antes ficava o estágio classe AB e que é hoje a saída do circuito, com o potenciômetro de ganho ajustado para cerca de 0,67~V de pico a pico;
 	\item[Subtrator] --- a saída do amplificador de diferenças que converte as correntes do \acs{dac} em tensão (U1A), logo após o conversor.
 \end{description}
-Durante as medidas, o resistor de realimentação do subtrator (R6) tinha um capacitor em paralelo, de \pendente{valor do capacitor}, acrescentado como teste para atenuar os picos de chaveamento do \acs{dac}.
+Durante as medidas, o resistor de realimentação do subtrator (R6) tinha um capacitor de 460~pF em paralelo, acrescentado como teste para atenuar os picos de chaveamento do \acs{dac}. Ele põe um polo em 346~kHz nessa realimentação, sem efeito nas frequências medidas.
 
 \subsection{Diagnóstico do barramento do \acs{dac}}
 
-Nos primeiros ensaios, o seno apresentava um serrilhado que crescia com a frequência e se concentrava perto dos cruzamentos por zero. O mesmo efeito aparecia com o código da versão anterior, o que apontava para o \eng{hardware}. Para isolar a causa, foram criadas duas tabelas de teste, \cod{teste\_bits\_1a4.txt} e \cod{teste\_bits\_todos.txt} (em \cod{fpga/lut/}), carregadas na memória arbitrária pela interface gráfica. Cada trecho dessas tabelas alterna um único bit em torno do código 128, de modo que a saída mostra um pulso por bit, com altura proporcional ao peso do bit. Em um conversor correto, cada pulso tem o dobro da altura do anterior.
+Nos primeiros ensaios, o seno apresentava um serrilhado que crescia com a frequência e se concentrava perto dos cruzamentos por zero. O mesmo efeito aparecia com o código legado, o que apontava para o \eng{hardware}. Para isolar a causa, foram criadas duas tabelas de teste, \cod{teste\_bits\_1a4.txt} e \cod{teste\_bits\_todos.txt} (em \cod{fpga/lut/}), carregadas na memória arbitrária pela interface gráfica. Cada trecho dessas tabelas alterna um único bit em torno do código 128, de modo que a saída mostra um pulso por bit, com altura proporcional ao peso do bit. Em um conversor correto, cada pulso tem o dobro da altura do anterior.
 
 O pulso do bit~2 não apareceu. Com esse bit sem efeito, a saída percorre só quatro códigos a cada oito e depois salta, o que produz o serrilhado observado. Com o \acs{dac} fora do soquete, a linha desse bit não apresentava nível lógico, apenas o acoplamento das linhas vizinhas, o que indicou um circuito aberto entre o \ac{fpga} e a placa. A causa estava no cabo, junto ao pino 5 do conector de expansão (\acs{gpio}[4]), e foi corrigida.
 
@@ -346,7 +350,7 @@ A Figura~\ref{fig:bancada_senos} mostra os senos medidos na saída, com o seno a
 
 A \acs{sinad}, que compara a fundamental com todo o restante (harmônicas, ruído e quantização), ficou entre 34,1 e 37,2~dB até 1~kHz, o que corresponde a um \ac{enob} de 5,4 a 5,9~bits. Esse valor é limitado pela própria medida. Na escala de 100~mV/div, o conversor de 8~bits do osciloscópio tem degraus de 4~mV, e o seu erro de quantização, somado ao do \acs{dac}, cujo \acs{lsb} vale 2,65~mV nesse ponto, já limita a \acs{sinad} a cerca de 45~dB; o restante vem de ruído e da ondulação de 10~MHz. Pelo mesmo motivo, a \acs{thd} medida, de \(-43\) a \(-50\)~dBc, não permite confirmar os \(-70{,}9\)~dBc da simulação, o que exigiria um instrumento de maior resolução.
 
-No subtrator, a amplitude foi de 2,1~V de pico a pico, cerca de metade dos 3,97~V calculados para a corrente de escala completa de 1,99~mA em 1~k\(\Omega\) (Tabela~\ref{tab:spice}). \pendente{Verificar a corrente de referência e os resistores do conversor corrente-tensão montados na placa.}
+No subtrator, a amplitude foi de 2,1~V de pico a pico, cerca de metade dos 3,97~V calculados para a corrente de escala completa de 1,99~mA em 1~k\(\Omega\) (Tabela~\ref{tab:spice}). Os resistores da referência, R1 e R2, são de 5~k\(\Omega\), como na simulação, o que mantém \(I_{REF}\) em 2~mA. A amplitude medida é praticamente a de uma única saída do \acs{dac} em 1~k\(\Omega\), 1,99~V de pico a pico, o que sugere que só uma das duas correntes complementares chega ao subtrator. \pendente{Medir a saída do subtrator com acoplamento DC: com as duas correntes, o seno fica centrado em 0~V; com uma só, em torno de \(\pm 1\)~V.}
 
 A Figura~\ref{fig:bancada_formas} mostra as demais formas de onda em 100~Hz: a rampa, a função sinc e a forma arbitrária, com a tabela do \ac{ecg} que a memória carrega ao ligar. Essa tabela tem dois batimentos por período, e por isso o contador mediu 199,998~Hz. Na rampa e na sinc, o contador mediu 99,9985 e 99,9993~Hz, também a menos de 10~ppm da frequência gerada.
 

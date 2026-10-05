@@ -15,7 +15,7 @@ Os mesmos dados estão no TCC, na seção "Ensaios em bancada" e no Apêndice C.
 
 **Condições:**
 - **Osciloscópio:** Tektronix TBS1102B (100 MHz, 2 GS/s, 8 bits), em modo *sample* e com acoplamento AC. Cada captura tem 2500 pontos; as FFT têm 1024.
-- **Placa:** sem o estágio classe AB, e com um capacitor em paralelo com R6 (realimentação do U1A), posto como teste para atenuar os picos de chaveamento do DAC.
+- **Placa:** sem o estágio classe AB, e com um capacitor de 460 pF em paralelo com R6 (realimentação do U1A), posto como teste para atenuar os picos de chaveamento do DAC. O polo fica em 346 kHz, sem efeito nas frequências medidas.
 - **Bit 2:** a linha do bit 2 do barramento, aberta no cabo junto ao JP5 (ver [Teste dos pesos dos bits](#teste-dos-pesos-dos-bits)), foi consertada antes destas medidas.
 - **Data:** o relógio do osciloscópio estava um dia adiantado; as telas mostram 6 de outubro.
 
@@ -80,7 +80,7 @@ As duas FFT renomeadas foram identificadas pelo conteúdo. A `FFT@pico_harmonico
 - **Frequência gerada:** é M·f<sub>clk</sub>/2³², com a palavra de sintonia M que o FPGA calcula.
 - **Frequência:** todas as medidas ficaram entre 0,7 e 12 ppm acima da gerada, a maioria com cerca de 10 ppm. Esse desvio comum é a diferença entre o oscilador de 50 MHz da DE2-115 e a base de tempo do osciloscópio. A conversão Hz → FTW não acrescenta erro mensurável. Em 10 Hz, o ajuste de seno deu 9,99779 Hz, contra os 9,99775 Hz previstos: o truncamento da FTW (até 2,33 mHz) aparece nessa frequência.
 - **SINAD e THD:** foram calculados a partir do CSV, ajustando a fundamental e as harmônicas até a 15ª. Até 1 kHz, a SINAD de 34 a 37 dB (ENOB de 5,4 a 5,9 bits) é limitada pelo próprio osciloscópio: a 100 mV/div, o ADC de 8 bits tem degraus de 4 mV, e isso já limita a medida a cerca de 45 dB. Os −70,9 dBc da [simulação](../README.md#resultados) ficam fora do alcance desse instrumento.
-- **Amplitude:** em 10 Hz, a amplitude menor vem do acoplamento AC do osciloscópio, com corte perto de 10 Hz. No subtrator, 2,1 V<sub>pp</sub> é cerca de metade dos 3,97 V<sub>pp</sub> calculados; falta conferir a corrente de referência e os resistores montados.
+- **Amplitude:** em 10 Hz, a amplitude menor vem do acoplamento AC do osciloscópio, com corte perto de 10 Hz. No subtrator, 2,1 V<sub>pp</sub> é cerca de metade dos 3,97 V<sub>pp</sub> calculados. R1 e R2 são de 5 kΩ, então I<sub>REF</sub> = 2 mA. Os 2,1 V<sub>pp</sub> batem com uma única saída do DAC em 1 kΩ (1,99 V<sub>pp</sub>), o que sugere que só uma das duas correntes complementares chega ao subtrator. Para conferir, meça a saída do subtrator com acoplamento DC: com as duas correntes, o seno fica centrado em 0 V; com uma só, em torno de ±1 V.
 - **Distorção nos cruzamentos por zero:** em 10 kHz, a saída se afasta do seno perto de cada passagem pelo código 128, com desvios de até 92 LSB, e a THD vai a −17,3 dBc. No subtrator, o mesmo seno de 10 kHz está limpo (desvio médio abaixo de 1 LSB, THD de −46,8 dBc). A distorção nasce, portanto, depois do conversor corrente-tensão: no filtro (U1B), no ganho (U1C) ou no seguidor (U1D). O subtrator mostra uma distorção de outro tipo só em 30 kHz, perto do vale do seno. **Em investigação.**
 - **Espectro até 50 MHz:** nenhum espúrio passou de −45,6 dBc (em 1,46 MHz), perto do piso do osciloscópio.
 - **FFT a 2,5 kS/s:** o seno de 10 kHz aparece dobrado em 101 Hz, \|10 000 − 4 × 2 525\|. As harmônicas da distorção aparecem em 303, 505 e 606 Hz e acima. É *aliasing* do próprio osciloscópio.

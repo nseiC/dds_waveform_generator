@@ -138,6 +138,7 @@ $$
 | Pasta | Conteúdo |
 |---|---|
 | [`fpga/`](fpga/) | Projeto Quartus: fontes VHDL, IPs, tabelas `.mif`, testbenches e as figuras deles |
+| [`fpga/legado/`](fpga/legado/) | Versão anterior do gerador, ponto de partida do projeto |
 | [`analog/`](analog/) | Placa no Altium (`layout/`), simulação no LTspice (`simulation/`) e fotos (`figuras/`) |
 | [`GUI/`](GUI/) | Interface em Python e a biblioteca `dds_jtag` |
 | [`docs/`](docs/) | Logo, figuras, a roda de fase (`jogo/`) e o script que gera as figuras |
