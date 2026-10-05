@@ -136,7 +136,7 @@ Os três blocos foram agrupados na entidade \cod{jtag\_control}, que contém tod
 
 O \ac{pll} gera o clock de 10~MHz dividindo por cinco o oscilador de 50~MHz. O \eng{reset} do sistema vem do botão KEY[0] e da indicação de travamento do \ac{pll}, e passa por um sincronizador (\cod{reset\_sync}): entra em \eng{reset} de forma assíncrona, assim que o botão é pressionado, e sai em sincronia com o clock, três bordas depois de o botão ser solto. Assim, todos os registradores saem do \eng{reset} na mesma borda.
 
-A Tabela~\ref{tab:pinos} mostra a pinagem, a mesma do código legado (Seção~\ref{sec:legado}). O barramento do \ac{dac} usa os pinos 3 a 10 do conector de expansão, e o pino 1 é mantido em nível baixo como referência de terra no cabo. O pino 2 leva o clock de 10~MHz invertido, gerado pela entidade \cod{dac\_clock} com um registrador de saída de taxa dupla (\cod{altddio\_out}), o que evita passar o clock pela lógica. A borda de subida desse clock ocorre 50~ns depois da mudança dos bits, no meio da amostra. O DAC0800 não usa clock, mas o pino permite ligar um \ac{dac} com registrador de entrada e serve de gatilho para o osciloscópio. Dois \eng{LEDs} indicam o travamento do \ac{pll} e a chegada de cada comando do computador. A Tabela~\ref{tab:barramento} mostra o caminho de cada bit até o \acs{dac}: do pino do \acs{fpga} ao conector de expansão JP5 da DE2-115, dele ao conector J1 da placa analógica e, por fim, ao pino do DAC0800. O fabricante numera as entradas do DAC0800 do bit mais significativo para o menos significativo, de B1 a B8, e por isso o bit 0 do \acs{fpga} chega à entrada B8, e o bit 7, à B1.
+A Tabela~\ref{tab:pinos} mostra a pinagem, a mesma do código legado (Seção~\ref{sec:legado}), e a Figura~\ref{fig:pin_planner} mostra essas atribuições no Pin Planner do Quartus. O barramento do \ac{dac} usa os pinos 3 a 10 do conector de expansão, e o pino 1 é mantido em nível baixo como referência de terra no cabo. O pino 2 leva o clock de 10~MHz invertido, gerado pela entidade \cod{dac\_clock} com um registrador de saída de taxa dupla (\cod{altddio\_out}), o que evita passar o clock pela lógica. A borda de subida desse clock ocorre 50~ns depois da mudança dos bits, no meio da amostra. O DAC0800 não usa clock, mas o pino permite ligar um \ac{dac} com registrador de entrada e serve de gatilho para o osciloscópio. Dois \eng{LEDs} indicam o travamento do \ac{pll} e a chegada de cada comando do computador. A Tabela~\ref{tab:barramento} mostra o caminho de cada bit até o \acs{dac}: do pino do \acs{fpga} ao conector de expansão JP5 da DE2-115, dele ao conector J1 da placa analógica e, por fim, ao pino do DAC0800. A Figura~\ref{fig:jp5} mostra a disposição do JP5: os pinos ímpares ficam em uma fileira e os pares na outra, e o pino \(n\) corresponde ao GPIO[\(n - 1\)]. O fabricante numera as entradas do DAC0800 do bit mais significativo para o menos significativo, de B1 a B8, e por isso o bit 0 do \acs{fpga} chega à entrada B8, e o bit 7, à B1.
 
 \begin{table}
 	\caption{Pinagem do \acs{fpga} na placa DE2-115.}
@@ -179,6 +179,21 @@ A Tabela~\ref{tab:pinos} mostra a pinagem, a mesma do código legado (Seção~\r
 	\end{tabular}
 	\legend{Fonte~---~Autoria própria.}
 \end{table}
+
+\begin{figure}
+	\caption{Atribuição dos pinos no Pin Planner do Quartus.}
+	\label{fig:pin_planner}
+	\includegraphics[width=\textwidth]{./figuras/pin_planner}
+	\legend{Fonte~---~Autoria própria.}
+\end{figure}
+
+\begin{figure}
+	\caption{Conector de expansão JP5 da DE2-115, com o pino do \acs{fpga} ligado a cada posição.}
+	\label{fig:jp5}
+	\includegraphics[width=0.4\textwidth]{./figuras/jp5_gpio}
+	\legend{Fonte~---~Terasic Technologies \cite{terasic2010}.}
+\end{figure}
+
 
 As restrições de tempo foram descritas em um arquivo \ac{sdc}: o clock de 50~MHz e os clocks derivados do \ac{pll}; o clock do \ac{jtag} como assíncrono em relação aos demais, já que a travessia é tratada pelo \cod{cmd\_sync}; e caminhos sem requisito de tempo para o botão, os \eng{LEDs}, o barramento do \ac{dac}, que não usa clock, e o próprio clock do \ac{dac}, cuja relação com os dados é fixada pelos registradores junto aos pinos.
 

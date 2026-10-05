@@ -247,6 +247,17 @@ O caminho de cada bit, do pino do FPGA ao DAC0800. As entradas do DAC0800 são n
 No JP5, os pinos 12 e 30 são GND, e os pinos 11 (5 V) e 29 (3,3 V) são alimentação. Os pinos
 ímpares ficam numa fileira e os pares na outra.
 
+<table>
+  <tr>
+    <td width="72%"><img src="figuras/pin_planner.png" alt="Pin Planner do Quartus com os pinos do projeto atribuídos"></td>
+    <td width="28%" align="center"><img src="figuras/jp5_gpio.png" alt="Conector JP5 da DE2-115 com os pinos do FPGA de cada GPIO"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Atribuição dos pinos no Pin Planner do Quartus</sub></td>
+    <td align="center"><sub>Conector JP5 (GPIO) da DE2-115, do manual da Terasic: o pino <i>n</i> é o GPIO[<i>n</i> − 1]</sub></td>
+  </tr>
+</table>
+
 A pinagem é a mesma da versão usada na bancada (TCCV1 do projeto anterior), inclusive os padrões
 de I/O, então o cabo atual serve. Os 8 bits saem de registradores de I/O
 (`FAST_OUTPUT_REGISTER`) e mudam juntos, na borda de subida do clock de 10 MHz.
